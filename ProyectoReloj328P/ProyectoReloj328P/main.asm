@@ -1,11 +1,9 @@
 ;
-; Lab3_Interrupciones.asm
+; ProyectoReloj328P.asm
 ;
 ; Created: 20/02/2025 22:52:46
 ; Author : Mario Alejandro Betancourt Franco
 ;
-
-; NOTA: De aquí en adelante trabajaré la entrega del POSTLAB
 
 // --------------------------------------------------------------------
 // | DIRECTIVAS DEL ENSAMBLADOR                                       |
@@ -15,30 +13,51 @@
 .org	0x0000
 	RJMP	START
 
+
 ; Interrupciones PIN CHANGE
 .org PCI0addr
 	RJMP PCINT_ISR		; Vector de interrupción de Pin Change
 
 ; Interrupciones por overflow de TIMER0 (Modo Normal)
-.org OVF0addr           ; Vector de interrupción para TIMER0_OVF
-    RJMP TIMER0_ISR        ; Saltar a la rutina de interrupción
+.org OVF0addr				; Vector de interrupción para TIMER0_OVF
+    RJMP TIMER0_ISR			; Saltar a la rutina de interrupción
+
+; Interrupciones por overflow de TIMER1 (Modo Normal)
+.org OVF1addr				; Vector de interrupción para TIMER1_OVF
+    RJMP TIMER1_ISR			; Saltar a la rutina de interrupción
+
+; Interrupciones por overflow de TIMER2 (Modo Normal)
+.org OVF2addr				; Vector de interrupción para TIMER2_OVF
+    RJMP TIMER2_ISR			; Saltar a la rutina de interrupción
 
 // --------------------------------------------------------------------
 // | DEFINICIONES DE REGISTROS DE USO COMÚN Y CONSTANTES DE ASSEMBLER |
 // --------------------------------------------------------------------
 
-// Constantes
-.equ	PRESCALER = (1<<CS02) | (1<<CS00)	; Prescaler de TIMER0 (En este caso debe ser de 1024)
-.equ	TIMER_START = 178					; Valor inicial del Timer0 (para un delay de 5 ms)
-.equ	OVF_TOP	= 200						; Número de overflows de TIMER0 en un segundo
+// Constantes para Timer0
+.equ	PRESCALER0 = (1<<CS01) | (1<<CS00)				; Prescaler de TIMER0 (1024)
+.equ	TIMER_START0 = 251								; Valor inicial del Timer0 (2 ms)
 
-// Registros
-.def	BTN_COUNTER = R17	; Contador de botones
-.def	SCOUNTER1 = R18		; Contador de segundos
-.def	SCOUNTER2 = R19		; Contador de decenas de segundos
-.def	OUT_PORTC = R20		; Salida a PORTC
-.def	OUT_PORTD = R21		; Salida a PORTD
-.def	OVF_COUNTER = R22	; Contador de Overflows en Timer0
+// Constantes para Timer1
+.equ	PRESCALER1 = (1<<CS11) | (1<<CS10)				; Prescaler de TIMER1 (1024)
+.equ	TIMER_START1 = 6942								; Valor inicial de TIMER1 (60s)
+
+// Constantes para Timer2
+.equ	PRESCALER2 = (1<<CS22) | (1<<CS21) | (1<<CS20)	; Prescaler de TIMER2 (En este caso debe ser de 1024)
+.equ	TIMER_START2 = 158								; Valor inicial de TIMER2 (1 ms)
+
+// R16 y R17 quedan como registros temporales
+
+// Contadores de Tiempo
+.def	MINUTE_COUNT = R18								; Contador de Minutos
+.def	HOUR_COUNT = R19								; Contador de Horas
+.def	DAY_COUNT = R20									; Contador de Días
+.def	MONTH_COUNT = R21								; Contador de Meses
+.def	T2_AUX_COUNT = R22								; Contador auxiliar de TIMER2
+
+// Registros auxiliares
+.def	OUT_PORTD = R23									; Salida de PORTD
+.def	MUX_SIGNAL = R24								; Salida de PORTC (Multiplexado de señal)
 
 // --------------------------------------------------------------------
 // | TABLAS															  |
@@ -60,57 +79,52 @@ START:
 	LDI		R16, HIGH(RAMEND)
 	OUT		SPH, R16
 
-	// - INICIALIZACIÓN DE TABLA -
+	// - INICIALIZACIÓN DE TABLAS -
 	LDI		ZL, LOW(TABLA * 2)
 	LDI		ZH, HIGH(TABLA * 2)
 	LPM		OUT_PORTD, Z
 	OUT		PORTD, OUT_PORTD
 	
 	// - CONFIGURACIÓN DE PINES -
-	// Configurar los pines 0 y 1 de PORTB como entradas
-	LDI		R16, (1 << PB0) | (1 << PB1)
+	// Configurar los pines PB1-PB4 de PORTB como entradas (Habilitar pull-ups)
+	LDI		R16, (1 << PB0) | (1 << PB1)  | (1 << PB2) | (1 << PB3) | (1 << PB4)
 	OUT		PORTB, R16
 
-	// Configurar los pines 2 y 3 de PORTB como salidas
-	LDI		R16, (1 << PB2) | (1 << PB3)
+	// Configurar el pin PB5 como una salida
+	LDI		R16, (1 << PB5)
 	OUT		DDRB, R16
 
-	// Configurar los pines de PORTC como salidas
+	// Configurar todos los pines de PORTC como salidas
 	LDI		R16, 0XFF
 	OUT		DDRC, R16
-	
+
 	// Configurar los pines de PORTD como salidas
 	LDI		R16, 0XFF
 	OUT		DDRD, R16
 
-	// - CONFIGURACIÓN DEL RELOJ DE SISTEMA -
-	// No es necesaria, usaremos los 16 MHz
+	// - CONFIGURACIÓN DEL RELOJ DE SISTEMA - (fclk = 1 MHz)
+	LDI		R16, (1 << CLKPCE)
+	STS		CLKPR, R16
+	LDI		R16, (1 << CLKPS2)
+	STS		CLKPR, R16
 
 	// - HABILITACIÓN DE INTERRUPCIONES PC -
-	LDI		R16, (1 << PCIE0)
+	LDI		R16, (1 << PCIE0)																	// Habilitar interrupciones PC en PORTB
 	STS		PCICR, R16
-	LDI		R16, (1 << PCINT0) | (1 << PCINT1)
+	LDI		R16, (1 << PCINT0) | (1 << PCINT1) | (1 << PCINT2) | (1 << PCINT3) | (1 << PCINT4)	// Habilitar Interrupciones en PB1-PB4
 	STS		PCMSK0, R16
 	
-	// - INICIALIZACIÓN DE TIMER0 -
-	// No cambiamos los bits WGM dado que la configuración por default es el modo normal
-	LDI     R16, PRESCALER				// Configurar un registro para setear las posiciones de CS01 y CS00
-    OUT     TCCR0B, R16					// Setear prescaler del TIMER0 a 64 (CS01 = 1 y CS00 = 0)
-    LDI     R16, TIMER_START			// Empezar el conteo con un valor de 158
-    OUT     TCNT0, R16					// Cargar valor inicial en TCNT0
-
-	// - HABILITACIÓN DE INTERRUPCIONES POR OVERFLOW EN TIMER0 -
-	LDI		R16, (1 << TOIE0)
-	STS		TIMSK0, R16
+	// - REINICIAR TIMERS Y HABILITAR INTERRUPCIONES POR OVERFLOWS DE TIMERS -
+	CALL	RESET_TIMER0
+	CALL	RESET_TIMER1
+	CALL	RESET_TIMER2
 
 	// - HABILITACIÓN DE INTERRUPCIONES GLOBALES -
 	SEI
 
-	// - INICIALIZACIÓN DE REGISTROS DE PROPÓSITO GENERAL -
-	CLR		BTN_COUNTER
-	CLR		SCOUNTER1
-	CLR		SCOUNTER2
-	CLR		OVF_COUNTER
+	// - INICIALIZACIÓN DE REGISTROS -
+	CLR		T2_AUX_COUNT
+	LDI		MUX_SIGNAL, 0X01
 
 // --------------------------------------------------------------------
 // | MAINLOOP														  |
@@ -123,116 +137,225 @@ MAINLOOP:
 // | RUTINAS NO DE INTERRUPCIÓN										  |
 // --------------------------------------------------------------------
 
-// Actualizar display 1 (Unidades)
-UPDATE_DISPLAY1:
-	LDI		ZL, LOW(TABLA * 2)
-	LDI		ZH, HIGH(TABLA * 2)
-	
-	; Sumar el contador de segundos 1 a Z
-    MOV		R16, SCOUNTER1
-    ADD		ZL, R16
-    CLR		R1				; Asegurar que no haya residuos en R1
-    ADC		ZH, R1			; Sumar acarreo a ZH
+// - REINICIAR TIMER0 -
+RESET_TIMER0:
+	// - PRESCALER Y VALOR INICIAL -
+	LDI     R16, PRESCALER0
+    STS     TCCR0B, R16
+    LDI     R16, TIMER_START0
+    STS     TCNT0, R16
 
-    ; Extraer el valor de la dirección a la que Z está apuntando
-    LPM		OUT_PORTD, Z
-	OUT		PORTD, OUT_PORTD
-
+	// - HABILITACIÓN DE INTERRUPCIONES POR OVERFLOW EN TIMER0 -
+	LDI		R16, (1 << TOIE0)
+	STS		TIMSK0, R16
 	RET
 
-// Actualizar display 2 (Unidades)
-UPDATE_DISPLAY2:
-	LDI		ZL, LOW(TABLA * 2)
-	LDI		ZH, HIGH(TABLA * 2)
-	
-	; Sumar el contador de segundos 1 a Z
-    MOV		R16, SCOUNTER2
-    ADD		ZL, R16
-    CLR		R1				; Asegurar que no haya residuos en R1
-    ADC		ZH, R1			; Sumar acarreo a ZH
 
-    ; Extraer el valor de la dirección a la que Z está apuntando
-    LPM		OUT_PORTD, Z
-	OUT		PORTD, OUT_PORTD
+// - REINICIAR TIMER1 -
+RESET_TIMER1:
+	// - PRESCALER Y VALOR INICIAL -
+	LDI     R16, PRESCALER1
+    STS     TCCR1B, R16
+    LDI     R16, LOW(TIMER_START1)
+    STS     TCNT1L, R16
+	LDI     R16, HIGH(TIMER_START1)
+    STS     TCNT1H, R16
 
+	// - HABILITACIÓN DE INTERRUPCIONES POR OVERFLOW EN TIMER1 -
+	LDI		R16, (1 << TOIE1)
+	STS		TIMSK1, R16
+	RET
+
+// - REINICIAR TIMER2 -
+RESET_TIMER2:
+	// - PRESCALER Y VALOR INICIAL -
+	LDI     R16, PRESCALER2
+    STS     TCCR2B, R16
+    LDI     R16, TIMER_START2
+    STS     TCNT2, R16
+
+	// - HABILITACIÓN DE INTERRUPCIONES POR OVERFLOW EN TIMER2 -
+	LDI		R16, (1 << TOIE2)
+	STS		TIMSK2, R16
 	RET
 
 // --------------------------------------------------------------------
 // | RUTINAS DE INTERRUPCIÓN POR CAMBIO EN PINES					  |															  |
 // --------------------------------------------------------------------
 PCINT_ISR:
-	PUSH	R16  ; Guardar registro random
-	IN      R16, SREG   ; Guardar el estado de los flags
-	PUSH	R16  ; Guardar registro random
-
-	// Si PB0 está presionado, incrementar
-	SBIC	PINB, PB0
-	INC		BTN_COUNTER
-
-	// Si PB1 está presionado, decrementar
-	SBIC	PINB, PB1
-	DEC		BTN_COUNTER
-
-	OUT		PORTC, BTN_COUNTER
+	PUSH	R16
+	IN		R16, SREG
+	PUSH	R16
 
 	POP		R16
-    OUT		SREG, R16
-	POP		R16  ; Sacar registro random
+	OUT		SREG, R16
+	POP		R16
 	RETI
 
 // --------------------------------------------------------------------
 // | RUTINAS DE INTERRUPCIÓN CON TIMER0								  |
 // --------------------------------------------------------------------
-// Cuando ocurre un overflow en TIMER0 solo se incrementarán los contadores
-TIMER0_ISR: 
-    PUSH	R16
-    IN		R16, SREG
-    PUSH	R16
+TIMER0_ISR:
+	PUSH	R16
+	IN		R16, SREG
+	PUSH	R16
 
-	// Reiniciar el TIMER0
-	LDI		R16, TIMER_START
-    OUT		TCNT0, R16
+	// Rotar señal de multiplexado a la izquierda (Valor Inicial 0X01)
+	ROL		MUX_SIGNAL
 
-	// Incrementar el contador de Overflows hasta alcanzar 1 segundo y luego reiniciar
-	INC		OVF_COUNTER
-	CPI		OVF_COUNTER, OVF_TOP
-	BRLO	SHOW_NUMBERS
-	LDI		OVF_COUNTER, 0
+	// Aplicar máscara para PC1-PC3
+	ANDI	MUX_SIGNAL, 0X0F
 
-	// Incrementar contador de segundos (unidades)
-	INC		SCOUNTER1
-    CPI		SCOUNTER1, 10
-    BRLO	SHOW_NUMBERS 
+	// Si el bit de encendido desaparece, reiniciar
+	CPI		MUX_SIGNAL, 0
+	BRNE	END_T0_ISR
+	LDI		MUX_SIGNAL, 0X01
+	RJMP	END_T0_ISR
 
-	// Incrementar contador de decenas de segundos
-    LDI		SCOUNTER1, 0
-    INC		SCOUNTER2
+	// Mostrar algo distinto según
+	LDI		R16, 0X01
+	OUT		PORTD, R16
+	CPI		MUX_SIGNAL, 0b00000001
+	BREQ	END_T0_ISR
+	
+	LDI		R16, 0X02
+	OUT		PORTD, R16
+	CPI		MUX_SIGNAL, 0b00000010
+	BREQ	END_T0_ISR
+	
+	LDI		R16, 0X04
+	OUT		PORTD, R16
+	CPI		MUX_SIGNAL, 0b00000100
+	BREQ	END_T0_ISR
+	
+	LDI		R16, 0X08
+	OUT		PORTD, R16
+	CPI		MUX_SIGNAL, 0b00001000
+	BREQ	END_T0_ISR	
 
-	// Si el contador de decenas es mayor o igual a 6 reiniciar y mostrar números
-    CPI		SCOUNTER2, 6
-    BRLO	SHOW_NUMBERS
-	LDI		SCOUNTER2, 0
-	RJMP	SHOW_NUMBERS
+END_T0_ISR:
+	POP		R16
+	OUT		SREG, R16
+	POP		R16
+	RETI
 
-// Mostrar los números en los displays
-SHOW_NUMBERS:
-    SBIS	PORTB, PB2  ; Si PB2 está apagado, encenderlo y apagar PB3
-    RJMP	ACTIVATE_DISPLAY1
-    RJMP	ACTIVATE_DISPLAY2
 
-ACTIVATE_DISPLAY1:
-    SBI		PORTB, PB2   ; Activar display 1
-    CBI		PORTB, PB3   ; Desactivar display 2
-    CALL	UPDATE_DISPLAY1
-    RJMP	END_ISR
+// --------------------------------------------------------------------
+// | RUTINAS DE INTERRUPCIÓN CON TIMER1								  |
+// --------------------------------------------------------------------
+TIMER1_ISR:
+	PUSH	R16
+	IN		R16, SREG
+	PUSH	R16
 
-ACTIVATE_DISPLAY2:
-    CBI		PORTB, PB2   ; Desactivar display 1
-    SBI		PORTB, PB3   ; Activar display 2
-    CALL	UPDATE_DISPLAY2
+	// Incrementar el contador de minutos
+	INC		MINUTE_COUNT
 
-END_ISR:
-    POP		R16
-    OUT		SREG, R16
-    POP		R16
-    RETI
+	// Si el contador de minutos no excede 60 salir
+	CPI		MINUTE_COUNT, 60
+	BRLO	END_T1_ISR
+
+	// Si han pasado más de 60 minutos, reiniciar e incrementar contador de horas
+	CLR		MINUTE_COUNT
+	INC		HOUR_COUNT
+
+	// Si el contador de horas no excede 24 salir
+	CPI		HOUR_COUNT, 24
+	BRLO	END_T1_ISR
+
+	// Si han pasado más de 24 horas, reiniciar e incrementar el contador de días
+	CLR		HOUR_COUNT
+	RJMP	AUMENTAR_DIA
+
+AUMENTAR_DIA:
+	// Aumentar el contador de días
+	INC		DAY_COUNT
+
+	// Verificar si el mes es febrero
+	CPI		MONTH_COUNT, 2
+	BREQ	FEBRERO
+
+	// Meses con 30 días (abril, junio, septiembre, noviembre)
+    CPI		MONTH_COUNT, 4
+    BREQ	MESES_30
+    CPI		MONTH_COUNT, 6
+    BREQ	MESES_30
+    CPI		MONTH_COUNT, 9
+    BREQ	MESES_30
+    CPI		MONTH_COUNT, 11
+    BREQ	MESES_30
+
+	// Si el mes no es de 30 días y no es febrero, es de 31 días
+	RJMP	MESES_31
+
+FEBRERO:
+	// Verificar si el contador pasa de 28
+	CPI		DAY_COUNT, 28
+    BRLO	END_T1_ISR
+
+	// Si han pasado más de 28 días, reiniciar a uno
+    LDI		DAY_COUNT, 1
+    RJMP	AUMENTAR_MES
+
+MESES_30:
+	// Verificar si el contador pasa de 30
+	CPI		DAY_COUNT, 31
+    BRLO	END_T1_ISR
+
+	// Si han pasado más de 30 días, reiniciar a uno
+    LDI		DAY_COUNT, 1
+    RJMP	AUMENTAR_MES
+
+MESES_31:
+	// Verificar si el contador pasa de 31
+	CPI		DAY_COUNT, 32
+    BRLO	END_T1_ISR
+
+	// Si han pasado más de 31 días, reiniciar a uno
+    LDI		DAY_COUNT, 1
+    RJMP	AUMENTAR_MES
+
+// Aumentar mes y reiniciar si pasan más de 12 meses
+AUMENTAR_MES:
+	INC		MONTH_COUNT
+	CPI		MONTH_COUNT, 12
+	BRLO	END_T1_ISR
+	LDI		MONTH_COUNT, 1
+	RJMP	END_T1_ISR
+
+// Terminar Rutina de Interrupción
+END_T1_ISR:
+	POP		R16
+	OUT		SREG, R16
+	POP		R16
+	RETI
+
+
+// --------------------------------------------------------------------
+// | RUTINAS DE INTERRUPCIÓN CON TIMER2								  |
+// --------------------------------------------------------------------
+TIMER2_ISR:
+	PUSH	R16
+	IN		R16, SREG
+	PUSH	R16
+
+	// Incrementar el contador auxiliar hasta 6
+	INC		T2_AUX_COUNT
+	CPI		T2_AUX_COUNT, 6
+	BRLO	END_T2_ISR
+
+	// Si el contador rebasa 6, reiniciar y alternar el bit PD7
+	CLR		T2_AUX_COUNT		; Guardar el reinicio del contador
+
+	IN		R16, PORTD			; Leer estado actual de PORTD
+	LDI		R17, (1 << PD7)
+    EOR		R16, R17			; Alternar bit PD7 (D7)
+    OUT		PORTD, R16			; Escribir nuevo estado
+	
+
+// Terminar Rutina de Interrupción
+END_T2_ISR:
+	POP		R16
+	OUT		SREG, R16
+	POP		R16
+	RETI
