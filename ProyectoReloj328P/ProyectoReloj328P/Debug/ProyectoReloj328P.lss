@@ -1,5 +1,5 @@
 
-AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm Sun Mar 09 17:02:54 2025
+AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm Sun Mar 09 17:31:03 2025
 
 [builtin](2): Including file 'C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\m328Pdef.inc'
 [builtin](2): Including file 'C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\m328Pdef.inc'
@@ -1002,19 +1002,19 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  
                                  ; Interrupciones PIN CHANGE
                                  .org PCI0addr
-000006 c145                      	RJMP PCINT_ISR		; Vector de interrupción de Pin Change
+000006 c148                      	RJMP PCINT_ISR		; Vector de interrupción de Pin Change
                                  
                                  ; Interrupciones por overflow de TIMER0 (Modo Normal)
                                  .org OVF0addr				; Vector de interrupción para TIMER0_OVF
-000020 c132                          RJMP TIMER0_ISR			; Saltar a la rutina de interrupción
+000020 c135                          RJMP TIMER0_ISR			; Saltar a la rutina de interrupción
                                  
                                  ; Interrupciones por overflow de TIMER1 (Modo Normal)
                                  .org OVF1addr				; Vector de interrupción para TIMER1_OVF
-00001a c155                          RJMP TIMER1_ISR			; Saltar a la rutina de interrupción
+00001a c14b                          RJMP TIMER1_ISR			; Saltar a la rutina de interrupción
                                  
                                  ; Interrupciones por overflow de TIMER2 (Modo Normal)
                                  .org OVF2addr				; Vector de interrupción para TIMER2_OVF
-000012 c18a                          RJMP TIMER2_ISR			; Saltar a la rutina de interrupción
+000012 c182                          RJMP TIMER2_ISR			; Saltar a la rutina de interrupción
                                  
                                  // --------------------------------------------------------------------
                                  // | DEFINICIONES DE REGISTROS DE USO COMÚN Y CONSTANTES DE ASSEMBLER |
@@ -1022,7 +1022,7 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  
                                  // Constantes para Timer0
                                  .equ	PRESCALER0 = (1<<CS01) | (1<<CS00)				; Prescaler de TIMER0 (1024)
-                                 .equ	TIMER_START0 = 251								; Valor inicial del Timer0 (2 ms)
+                                 .equ	TIMER_START0 = 1 ;251								; Valor inicial del Timer0 (2 ms)
                                  
                                  // Constantes para Timer1
                                  .equ	PRESCALER1 = (1<<CS11) | (1<<CS10)				; Prescaler de TIMER1 (1024)
@@ -1083,45 +1083,50 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  	// Configurar el pin PB5 como una salida
 00010f e200                      	LDI		R16, (1 << PB5)
 000110 b904                      	OUT		DDRB, R16
+000111 982d                      	CBI		PORTB, PB5
                                  
                                  	// Configurar todos los pines de PORTC como salidas
-000111 ef0f                      	LDI		R16, 0XFF
-000112 b907                      	OUT		DDRC, R16
+000112 ef0f                      	LDI		R16, 0XFF
+000113 b907                      	OUT		DDRC, R16
+000114 e000                      	LDI		R16, 0X00
+000115 b908                      	OUT		PORTC, R16
                                  
                                  	// Configurar los pines de PORTD como salidas
-000113 ef0f                      	LDI		R16, 0XFF
-000114 b90a                      	OUT		DDRD, R16
+000116 ef0f                      	LDI		R16, 0XFF
+000117 b90a                      	OUT		DDRD, R16
+000118 ef0f                      	LDI		R16, 0XFF
+000119 b90b                      	OUT		PORTD, R16
                                  
                                  	// - CONFIGURACIÓN DEL RELOJ DE SISTEMA - (fclk = 1 MHz)
-000115 e800                      	LDI		R16, (1 << CLKPCE)
-000116 9300 0061                 	STS		CLKPR, R16
-000118 e004                      	LDI		R16, (1 << CLKPS2)
-000119 9300 0061                 	STS		CLKPR, R16
+00011a e800                      	LDI		R16, (1 << CLKPCE)
+00011b 9300 0061                 	STS		CLKPR, R16
+00011d e008                      	LDI		R16, (1 << CLKPS3)
+00011e 9300 0061                 	STS		CLKPR, R16
                                  
                                  	// - HABILITACIÓN DE INTERRUPCIONES PC -
-00011b e001                      	LDI		R16, (1 << PCIE0)																	// Habilitar interrupciones PC en PORTB
-00011c 9300 0068                 	STS		PCICR, R16
-00011e e10f                      	LDI		R16, (1 << PCINT0) | (1 << PCINT1) | (1 << PCINT2) | (1 << PCINT3) | (1 << PCINT4)	// Habilitar Interrupciones en PB1-PB4
-00011f 9300 006b                 	STS		PCMSK0, R16
+000120 e001                      	LDI		R16, (1 << PCIE0)																	// Habilitar interrupciones PC en PORTB
+000121 9300 0068                 	STS		PCICR, R16
+000123 e10f                      	LDI		R16, (1 << PCINT0) | (1 << PCINT1) | (1 << PCINT2) | (1 << PCINT3) | (1 << PCINT4)	// Habilitar Interrupciones en PB1-PB4
+000124 9300 006b                 	STS		PCMSK0, R16
                                  	
                                  	// - REINICIAR TIMERS Y HABILITAR INTERRUPCIONES POR OVERFLOWS DE TIMERS -
-000121 940e 012b                 	CALL	RESET_TIMER0
-000123 940e 0135                 	CALL	RESET_TIMER1
-000125 940e 0142                 	CALL	RESET_TIMER2
+000126 940e 0130                 	CALL	RESET_TIMER0
+000128 940e 0138                 	CALL	RESET_TIMER1
+00012a 940e 0145                 	CALL	RESET_TIMER2
                                  
                                  	// - HABILITACIÓN DE INTERRUPCIONES GLOBALES -
-000127 9478                      	SEI
+00012c 9478                      	SEI
                                  
                                  	// - INICIALIZACIÓN DE REGISTROS -
-000128 2766                      	CLR		T2_AUX_COUNT
-000129 e081                      	LDI		MUX_SIGNAL, 0X01
+00012d 2766                      	CLR		T2_AUX_COUNT
+00012e e081                      	LDI		MUX_SIGNAL, 0X01
                                  
                                  // --------------------------------------------------------------------
                                  // | MAINLOOP														  |
                                  // --------------------------------------------------------------------
                                  
                                  MAINLOOP:
-00012a cfff                      	RJMP	MAINLOOP
+00012f cfff                      	RJMP	MAINLOOP
                                  
                                  // --------------------------------------------------------------------
                                  // | RUTINAS NO DE INTERRUPCIÓN										  |
@@ -1130,225 +1135,217 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  // - REINICIAR TIMER0 -
                                  RESET_TIMER0:
                                  	// - PRESCALER Y VALOR INICIAL -
-00012b e003                      	LDI     R16, PRESCALER0
-00012c 9300 0025                     STS     TCCR0B, R16
-00012e ef0b                          LDI     R16, TIMER_START0
-00012f 9300 0026                     STS     TCNT0, R16
+000130 e003                      	LDI     R16, PRESCALER0
+000131 bd05                          OUT     TCCR0B, R16
+000132 e001                          LDI     R16, TIMER_START0
+000133 bd06                          OUT     TCNT0, R16
                                  
                                  	// - HABILITACIÓN DE INTERRUPCIONES POR OVERFLOW EN TIMER0 -
-000131 e001                      	LDI		R16, (1 << TOIE0)
-000132 9300 006e                 	STS		TIMSK0, R16
-000134 9508                      	RET
+000134 e001                      	LDI		R16, (1 << TOIE0)
+000135 9300 006e                 	STS		TIMSK0, R16
+000137 9508                      	RET
                                  
                                  
                                  // - REINICIAR TIMER1 -
                                  RESET_TIMER1:
                                  	// - PRESCALER Y VALOR INICIAL -
-000135 e003                      	LDI     R16, PRESCALER1
-000136 9300 0081                     STS     TCCR1B, R16
-000138 e10e                          LDI     R16, LOW(TIMER_START1)
-000139 9300 0084                     STS     TCNT1L, R16
-00013b e10b                      	LDI     R16, HIGH(TIMER_START1)
-00013c 9300 0085                     STS     TCNT1H, R16
+000138 e003                      	LDI     R16, PRESCALER1
+000139 9300 0081                     STS     TCCR1B, R16
+00013b e10e                          LDI     R16, LOW(TIMER_START1)
+00013c 9300 0084                     STS     TCNT1L, R16
+00013e e10b                      	LDI     R16, HIGH(TIMER_START1)
+00013f 9300 0085                     STS     TCNT1H, R16
                                  
                                  	// - HABILITACIÓN DE INTERRUPCIONES POR OVERFLOW EN TIMER1 -
-00013e e001                      	LDI		R16, (1 << TOIE1)
-00013f 9300 006f                 	STS		TIMSK1, R16
-000141 9508                      	RET
+000141 e001                      	LDI		R16, (1 << TOIE1)
+000142 9300 006f                 	STS		TIMSK1, R16
+000144 9508                      	RET
                                  
                                  // - REINICIAR TIMER2 -
                                  RESET_TIMER2:
                                  	// - PRESCALER Y VALOR INICIAL -
-000142 e007                      	LDI     R16, PRESCALER2
-000143 9300 00b1                     STS     TCCR2B, R16
-000145 e90e                          LDI     R16, TIMER_START2
-000146 9300 00b2                     STS     TCNT2, R16
+000145 e007                      	LDI     R16, PRESCALER2
+000146 9300 00b1                     STS     TCCR2B, R16
+000148 e90e                          LDI     R16, TIMER_START2
+000149 9300 00b2                     STS     TCNT2, R16
                                  
                                  	// - HABILITACIÓN DE INTERRUPCIONES POR OVERFLOW EN TIMER2 -
-000148 e001                      	LDI		R16, (1 << TOIE2)
-000149 9300 0070                 	STS		TIMSK2, R16
-00014b 9508                      	RET
+00014b e001                      	LDI		R16, (1 << TOIE2)
+00014c 9300 0070                 	STS		TIMSK2, R16
+00014e 9508                      	RET
                                  
                                  // --------------------------------------------------------------------
                                  // | RUTINAS DE INTERRUPCIÓN POR CAMBIO EN PINES					  |															  |
                                  // --------------------------------------------------------------------
                                  PCINT_ISR:
-00014c 930f                      	PUSH	R16
-00014d b70f                      	IN		R16, SREG
-00014e 930f                      	PUSH	R16
+00014f 930f                      	PUSH	R16
+000150 b70f                      	IN		R16, SREG
+000151 930f                      	PUSH	R16
                                  
-00014f 910f                      	POP		R16
-000150 bf0f                      	OUT		SREG, R16
-000151 910f                      	POP		R16
-000152 9518                      	RETI
+000152 910f                      	POP		R16
+000153 bf0f                      	OUT		SREG, R16
+000154 910f                      	POP		R16
+000155 9518                      	RETI
                                  
                                  // --------------------------------------------------------------------
                                  // | RUTINAS DE INTERRUPCIÓN CON TIMER0								  |
                                  // --------------------------------------------------------------------
                                  TIMER0_ISR:
-000153 930f                      	PUSH	R16
-000154 b70f                      	IN		R16, SREG
-000155 930f                      	PUSH	R16
+000156 930f                      	PUSH	R16
+000157 b70f                      	IN		R16, SREG
+000158 930f                      	PUSH	R16
+                                 
+                                 	// Reiniciar el TIMER0
+000159 940e 0130                 	CALL	RESET_TIMER0
+                                 
+                                 	// Sacar la señal de multiplexado en PORTC
+00015b b988                      	OUT		PORTC, MUX_SIGNAL
                                  
                                  	// Rotar señal de multiplexado a la izquierda (Valor Inicial 0X01)
-000156 1f88                      	ROL		MUX_SIGNAL
+00015c 1f88                      	ROL		MUX_SIGNAL
                                  
                                  	// Aplicar máscara para PC1-PC3
-000157 708f                      	ANDI	MUX_SIGNAL, 0X0F
+00015d 708f                      	ANDI	MUX_SIGNAL, 0X0F
                                  
                                  	// Si el bit de encendido desaparece, reiniciar
-000158 3080                      	CPI		MUX_SIGNAL, 0
-000159 f491                      	BRNE	END_T0_ISR
-00015a e081                      	LDI		MUX_SIGNAL, 0X01
-00015b c010                      	RJMP	END_T0_ISR
+00015e 3080                      	CPI		MUX_SIGNAL, 0
+00015f f411                      	BRNE	END_T0_ISR
+000160 e081                      	LDI		MUX_SIGNAL, 0X01
+000161 c000                      	RJMP	END_T0_ISR
                                  
-                                 	// Mostrar algo distinto según
-00015c e001                      	LDI		R16, 0X01
-00015d b90b                      	OUT		PORTD, R16
-00015e 3081                      	CPI		MUX_SIGNAL, 0b00000001
-00015f f061                      	BREQ	END_T0_ISR
-                                 	
-000160 e002                      	LDI		R16, 0X02
-000161 b90b                      	OUT		PORTD, R16
-000162 3082                      	CPI		MUX_SIGNAL, 0b00000010
-000163 f041                      	BREQ	END_T0_ISR
-                                 	
-000164 e004                      	LDI		R16, 0X04
-000165 b90b                      	OUT		PORTD, R16
-000166 3084                      	CPI		MUX_SIGNAL, 0b00000100
-000167 f021                      	BREQ	END_T0_ISR
-                                 	
-000168 e008                      	LDI		R16, 0X08
-000169 b90b                      	OUT		PORTD, R16
-00016a 3088                      	CPI		MUX_SIGNAL, 0b00001000
-00016b f001                      	BREQ	END_T0_ISR	
                                  
                                  END_T0_ISR:
-00016c 910f                      	POP		R16
-00016d bf0f                      	OUT		SREG, R16
-00016e 910f                      	POP		R16
-00016f 9518                      	RETI
+000162 910f                      	POP		R16
+000163 bf0f                      	OUT		SREG, R16
+000164 910f                      	POP		R16
+000165 9518                      	RETI
                                  
                                  
                                  // --------------------------------------------------------------------
                                  // | RUTINAS DE INTERRUPCIÓN CON TIMER1								  |
                                  // --------------------------------------------------------------------
                                  TIMER1_ISR:
-000170 930f                      	PUSH	R16
-000171 b70f                      	IN		R16, SREG
-000172 930f                      	PUSH	R16
+000166 930f                      	PUSH	R16
+000167 b70f                      	IN		R16, SREG
+000168 930f                      	PUSH	R16
+                                 
+                                 	// Reiniciar el TIMER1
+000169 940e 0138                 	CALL	RESET_TIMER1
                                  
                                  	// Incrementar el contador de minutos
-000173 9523                      	INC		MINUTE_COUNT
+00016b 9523                      	INC		MINUTE_COUNT
                                  
                                  	// Si el contador de minutos no excede 60 salir
-000174 332c                      	CPI		MINUTE_COUNT, 60
-000175 f118                      	BRLO	END_T1_ISR
+00016c 332c                      	CPI		MINUTE_COUNT, 60
+00016d f118                      	BRLO	END_T1_ISR
                                  
                                  	// Si han pasado más de 60 minutos, reiniciar e incrementar contador de horas
-000176 2722                      	CLR		MINUTE_COUNT
-000177 9533                      	INC		HOUR_COUNT
+00016e 2722                      	CLR		MINUTE_COUNT
+00016f 9533                      	INC		HOUR_COUNT
                                  
                                  	// Si el contador de horas no excede 24 salir
-000178 3138                      	CPI		HOUR_COUNT, 24
-000179 f0f8                      	BRLO	END_T1_ISR
+000170 3138                      	CPI		HOUR_COUNT, 24
+000171 f0f8                      	BRLO	END_T1_ISR
                                  
                                  	// Si han pasado más de 24 horas, reiniciar e incrementar el contador de días
-00017a 2733                      	CLR		HOUR_COUNT
-00017b c000                      	RJMP	AUMENTAR_DIA
+000172 2733                      	CLR		HOUR_COUNT
+000173 c000                      	RJMP	AUMENTAR_DIA
                                  
                                  AUMENTAR_DIA:
                                  	// Aumentar el contador de días
-00017c 9543                      	INC		DAY_COUNT
+000174 9543                      	INC		DAY_COUNT
                                  
                                  	// Verificar si el mes es febrero
-00017d 3052                      	CPI		MONTH_COUNT, 2
-00017e f049                      	BREQ	FEBRERO
+000175 3052                      	CPI		MONTH_COUNT, 2
+000176 f049                      	BREQ	FEBRERO
                                  
                                  	// Meses con 30 días (abril, junio, septiembre, noviembre)
-00017f 3054                          CPI		MONTH_COUNT, 4
-000180 f059                          BREQ	MESES_30
-000181 3056                          CPI		MONTH_COUNT, 6
-000182 f049                          BREQ	MESES_30
-000183 3059                          CPI		MONTH_COUNT, 9
-000184 f039                          BREQ	MESES_30
-000185 305b                          CPI		MONTH_COUNT, 11
-000186 f029                          BREQ	MESES_30
+000177 3054                          CPI		MONTH_COUNT, 4
+000178 f059                          BREQ	MESES_30
+000179 3056                          CPI		MONTH_COUNT, 6
+00017a f049                          BREQ	MESES_30
+00017b 3059                          CPI		MONTH_COUNT, 9
+00017c f039                          BREQ	MESES_30
+00017d 305b                          CPI		MONTH_COUNT, 11
+00017e f029                          BREQ	MESES_30
                                  
                                  	// Si el mes no es de 30 días y no es febrero, es de 31 días
-000187 c008                      	RJMP	MESES_31
+00017f c008                      	RJMP	MESES_31
                                  
                                  FEBRERO:
                                  	// Verificar si el contador pasa de 28
-000188 314c                      	CPI		DAY_COUNT, 28
-000189 f078                          BRLO	END_T1_ISR
+000180 314c                      	CPI		DAY_COUNT, 28
+000181 f078                          BRLO	END_T1_ISR
                                  
                                  	// Si han pasado más de 28 días, reiniciar a uno
-00018a e041                          LDI		DAY_COUNT, 1
-00018b c008                          RJMP	AUMENTAR_MES
+000182 e041                          LDI		DAY_COUNT, 1
+000183 c008                          RJMP	AUMENTAR_MES
                                  
                                  MESES_30:
                                  	// Verificar si el contador pasa de 30
-00018c 314f                      	CPI		DAY_COUNT, 31
-00018d f058                          BRLO	END_T1_ISR
+000184 314f                      	CPI		DAY_COUNT, 31
+000185 f058                          BRLO	END_T1_ISR
                                  
                                  	// Si han pasado más de 30 días, reiniciar a uno
-00018e e041                          LDI		DAY_COUNT, 1
-00018f c004                          RJMP	AUMENTAR_MES
+000186 e041                          LDI		DAY_COUNT, 1
+000187 c004                          RJMP	AUMENTAR_MES
                                  
                                  MESES_31:
                                  	// Verificar si el contador pasa de 31
-000190 3240                      	CPI		DAY_COUNT, 32
-000191 f038                          BRLO	END_T1_ISR
+000188 3240                      	CPI		DAY_COUNT, 32
+000189 f038                          BRLO	END_T1_ISR
                                  
                                  	// Si han pasado más de 31 días, reiniciar a uno
-000192 e041                          LDI		DAY_COUNT, 1
-000193 c000                          RJMP	AUMENTAR_MES
+00018a e041                          LDI		DAY_COUNT, 1
+00018b c000                          RJMP	AUMENTAR_MES
                                  
                                  // Aumentar mes y reiniciar si pasan más de 12 meses
                                  AUMENTAR_MES:
-000194 9553                      	INC		MONTH_COUNT
-000195 305c                      	CPI		MONTH_COUNT, 12
-000196 f010                      	BRLO	END_T1_ISR
-000197 e051                      	LDI		MONTH_COUNT, 1
-000198 c000                      	RJMP	END_T1_ISR
+00018c 9553                      	INC		MONTH_COUNT
+00018d 305c                      	CPI		MONTH_COUNT, 12
+00018e f010                      	BRLO	END_T1_ISR
+00018f e051                      	LDI		MONTH_COUNT, 1
+000190 c000                      	RJMP	END_T1_ISR
                                  
                                  // Terminar Rutina de Interrupción
                                  END_T1_ISR:
-000199 910f                      	POP		R16
-00019a bf0f                      	OUT		SREG, R16
-00019b 910f                      	POP		R16
-00019c 9518                      	RETI
+000191 910f                      	POP		R16
+000192 bf0f                      	OUT		SREG, R16
+000193 910f                      	POP		R16
+000194 9518                      	RETI
                                  
                                  
                                  // --------------------------------------------------------------------
                                  // | RUTINAS DE INTERRUPCIÓN CON TIMER2								  |
                                  // --------------------------------------------------------------------
                                  TIMER2_ISR:
-00019d 930f                      	PUSH	R16
-00019e b70f                      	IN		R16, SREG
-00019f 930f                      	PUSH	R16
+000195 930f                      	PUSH	R16
+000196 b70f                      	IN		R16, SREG
+000197 930f                      	PUSH	R16
+                                 
+                                 	// Reiniciar el TIMER2
+000198 940e 0145                 	CALL	RESET_TIMER2
                                  
                                  	// Incrementar el contador auxiliar hasta 6
-0001a0 9563                      	INC		T2_AUX_COUNT
-0001a1 3066                      	CPI		T2_AUX_COUNT, 6
-0001a2 f028                      	BRLO	END_T2_ISR
+00019a 9563                      	INC		T2_AUX_COUNT
+00019b 3066                      	CPI		T2_AUX_COUNT, 6
+00019c f028                      	BRLO	END_T2_ISR
                                  
                                  	// Si el contador rebasa 6, reiniciar y alternar el bit PD7
-0001a3 2766                      	CLR		T2_AUX_COUNT		; Guardar el reinicio del contador
+00019d 2766                      	CLR		T2_AUX_COUNT		; Guardar el reinicio del contador
                                  
-0001a4 b10b                      	IN		R16, PORTD			; Leer estado actual de PORTD
-0001a5 e810                      	LDI		R17, (1 << PD7)
-0001a6 2701                          EOR		R16, R17			; Alternar bit PD7 (D7)
-0001a7 b90b                          OUT		PORTD, R16			; Escribir nuevo estado
+00019e b10b                      	IN		R16, PORTD			; Leer estado actual de PORTD
+00019f e810                      	LDI		R17, (1 << PD7)
+0001a0 2701                          EOR		R16, R17			; Alternar bit PD7 (D7)
+0001a1 b90b                          OUT		PORTD, R16			; Escribir nuevo estado
                                  	
                                  
                                  // Terminar Rutina de Interrupción
                                  END_T2_ISR:
-0001a8 910f                      	POP		R16
-0001a9 bf0f                      	OUT		SREG, R16
-0001aa 910f                      	POP		R16
-0001ab 9518                      	RETI
+0001a2 910f                      	POP		R16
+0001a3 bf0f                      	OUT		SREG, R16
+0001a4 910f                      	POP		R16
+0001a5 9518                      	RETI
 
 
 RESOURCE USE INFORMATION
@@ -1368,37 +1365,37 @@ counted separately from r26..r31 here.
 "ATmega328P" register use summary:
 x  :   0 y  :   0 z  :   1 r0 :   0 r1 :   0 r2 :   0 r3 :   0 r4 :   0 
 r5 :   0 r6 :   0 r7 :   0 r8 :   0 r9 :   0 r10:   0 r11:   0 r12:   0 
-r13:   0 r14:   0 r15:   0 r16:  75 r17:   2 r18:   3 r19:   3 r20:   7 
-r21:   8 r22:   4 r23:   2 r24:   9 r25:   0 r26:   0 r27:   0 r28:   0 
+r13:   0 r14:   0 r15:   0 r16:  71 r17:   2 r18:   3 r19:   3 r20:   7 
+r21:   8 r22:   4 r23:   2 r24:   6 r25:   0 r26:   0 r27:   0 r28:   0 
 r29:   0 r30:   1 r31:   1 
 Registers used: 12 out of 35 (34.3%)
 
 "ATmega328P" instruction use summary:
 .lds  :   0 .sts  :   0 adc   :   0 add   :   0 adiw  :   0 and   :   0 
 andi  :   1 asr   :   0 bclr  :   0 bld   :   0 brbc  :   0 brbs  :   0 
-brcc  :   0 brcs  :   0 break :   0 breq  :   9 brge  :   0 brhc  :   0 
+brcc  :   0 brcs  :   0 break :   0 breq  :   5 brge  :   0 brhc  :   0 
 brhs  :   0 brid  :   0 brie  :   0 brlo  :   7 brlt  :   0 brmi  :   0 
 brne  :   1 brpl  :   0 brsh  :   0 brtc  :   0 brts  :   0 brvc  :   0 
-brvs  :   0 bset  :   0 bst   :   0 call  :   3 cbi   :   0 cbr   :   0 
+brvs  :   0 bset  :   0 bst   :   0 call  :   6 cbi   :   1 cbr   :   0 
 clc   :   0 clh   :   0 cli   :   0 cln   :   0 clr   :   4 cls   :   0 
 clt   :   0 clv   :   0 clz   :   0 com   :   0 cp    :   0 cpc   :   0 
-cpi   :  17 cpse  :   0 dec   :   0 eor   :   1 fmul  :   0 fmuls :   0 
+cpi   :  13 cpse  :   0 dec   :   0 eor   :   1 fmul  :   0 fmuls :   0 
 fmulsu:   0 icall :   0 ijmp  :   0 in    :   5 inc   :   5 jmp   :   0 
-ld    :   0 ldd   :   0 ldi   :  33 lds   :   0 lpm   :   2 lsl   :   0 
+ld    :   0 ldd   :   0 ldi   :  31 lds   :   0 lpm   :   2 lsl   :   0 
 lsr   :   0 mov   :   0 movw  :   0 mul   :   0 muls  :   0 mulsu :   0 
-neg   :   0 nop   :   0 or    :   0 ori   :   0 out   :  16 pop   :   8 
+neg   :   0 nop   :   0 or    :   0 ori   :   0 out   :  17 pop   :   8 
 push  :   8 rcall :   0 ret   :   3 reti  :   4 rjmp  :  13 rol   :   1 
 ror   :   0 sbc   :   0 sbci  :   0 sbi   :   0 sbic  :   0 sbis  :   0 
 sbiw  :   0 sbr   :   0 sbrc  :   0 sbrs  :   0 sec   :   0 seh   :   0 
 sei   :   1 sen   :   0 ser   :   0 ses   :   0 set   :   0 sev   :   0 
-sez   :   0 sleep :   0 spm   :   0 st    :   0 std   :   0 sts   :  14 
+sez   :   0 sleep :   0 spm   :   0 st    :   0 std   :   0 sts   :  12 
 sub   :   0 subi  :   0 swap  :   0 tst   :   0 wdr   :   0 
-Instructions used: 21 out of 113 (18.6%)
+Instructions used: 22 out of 113 (19.5%)
 
 "ATmega328P" memory use summary [bytes]:
 Segment   Begin    End      Code   Data   Used    Size   Use%
 ---------------------------------------------------------------
-[.cseg] 0x000000 0x000358    344     10    354   32768   1.1%
+[.cseg] 0x000000 0x00034c    332     10    342   32768   1.0%
 [.dseg] 0x000100 0x000100      0      0      0    2048   0.0%
 [.eseg] 0x000000 0x000000      0      0      0    1024   0.0%
 

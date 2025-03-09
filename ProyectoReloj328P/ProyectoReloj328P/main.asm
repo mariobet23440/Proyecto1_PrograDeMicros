@@ -36,7 +36,7 @@
 
 // Constantes para Timer0
 .equ	PRESCALER0 = (1<<CS01) | (1<<CS00)				; Prescaler de TIMER0 (1024)
-.equ	TIMER_START0 = 251								; Valor inicial del Timer0 (2 ms)
+.equ	TIMER_START0 = 1 ;251								; Valor inicial del Timer0 (2 ms)
 
 // Constantes para Timer1
 .equ	PRESCALER1 = (1<<CS11) | (1<<CS10)				; Prescaler de TIMER1 (1024)
@@ -93,19 +93,24 @@ START:
 	// Configurar el pin PB5 como una salida
 	LDI		R16, (1 << PB5)
 	OUT		DDRB, R16
+	CBI		PORTB, PB5
 
 	// Configurar todos los pines de PORTC como salidas
 	LDI		R16, 0XFF
 	OUT		DDRC, R16
+	LDI		R16, 0X00
+	OUT		PORTC, R16
 
 	// Configurar los pines de PORTD como salidas
 	LDI		R16, 0XFF
 	OUT		DDRD, R16
+	LDI		R16, 0XFF
+	OUT		PORTD, R16
 
 	// - CONFIGURACIÓN DEL RELOJ DE SISTEMA - (fclk = 1 MHz)
 	LDI		R16, (1 << CLKPCE)
 	STS		CLKPR, R16
-	LDI		R16, (1 << CLKPS2)
+	LDI		R16, (1 << CLKPS3)
 	STS		CLKPR, R16
 
 	// - HABILITACIÓN DE INTERRUPCIONES PC -
@@ -141,9 +146,9 @@ MAINLOOP:
 RESET_TIMER0:
 	// - PRESCALER Y VALOR INICIAL -
 	LDI     R16, PRESCALER0
-    STS     TCCR0B, R16
+    OUT     TCCR0B, R16
     LDI     R16, TIMER_START0
-    STS     TCNT0, R16
+    OUT     TCNT0, R16
 
 	// - HABILITACIÓN DE INTERRUPCIONES POR OVERFLOW EN TIMER0 -
 	LDI		R16, (1 << TOIE0)
@@ -200,6 +205,12 @@ TIMER0_ISR:
 	IN		R16, SREG
 	PUSH	R16
 
+	// Reiniciar el TIMER0
+	CALL	RESET_TIMER0
+
+	// Sacar la señal de multiplexado en PORTC
+	OUT		PORTC, MUX_SIGNAL
+
 	// Rotar señal de multiplexado a la izquierda (Valor Inicial 0X01)
 	ROL		MUX_SIGNAL
 
@@ -212,26 +223,6 @@ TIMER0_ISR:
 	LDI		MUX_SIGNAL, 0X01
 	RJMP	END_T0_ISR
 
-	// Mostrar algo distinto según
-	LDI		R16, 0X01
-	OUT		PORTD, R16
-	CPI		MUX_SIGNAL, 0b00000001
-	BREQ	END_T0_ISR
-	
-	LDI		R16, 0X02
-	OUT		PORTD, R16
-	CPI		MUX_SIGNAL, 0b00000010
-	BREQ	END_T0_ISR
-	
-	LDI		R16, 0X04
-	OUT		PORTD, R16
-	CPI		MUX_SIGNAL, 0b00000100
-	BREQ	END_T0_ISR
-	
-	LDI		R16, 0X08
-	OUT		PORTD, R16
-	CPI		MUX_SIGNAL, 0b00001000
-	BREQ	END_T0_ISR	
 
 END_T0_ISR:
 	POP		R16
@@ -247,6 +238,9 @@ TIMER1_ISR:
 	PUSH	R16
 	IN		R16, SREG
 	PUSH	R16
+
+	// Reiniciar el TIMER1
+	CALL	RESET_TIMER1
 
 	// Incrementar el contador de minutos
 	INC		MINUTE_COUNT
@@ -338,6 +332,9 @@ TIMER2_ISR:
 	PUSH	R16
 	IN		R16, SREG
 	PUSH	R16
+
+	// Reiniciar el TIMER2
+	CALL	RESET_TIMER2
 
 	// Incrementar el contador auxiliar hasta 6
 	INC		T2_AUX_COUNT
