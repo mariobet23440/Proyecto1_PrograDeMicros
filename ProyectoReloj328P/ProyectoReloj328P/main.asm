@@ -36,15 +36,16 @@
 
 // Constantes para Timer0
 .equ	PRESCALER0 = (1<<CS01) | (1<<CS00)				; Prescaler de TIMER0 (1024)
-.equ	TIMER_START0 = 1 ;251								; Valor inicial del Timer0 (2 ms)
+.equ	TIMER_START0 = 246 ;251							; Valor inicial del Timer0 (10 ms)
 
 // Constantes para Timer1
 .equ	PRESCALER1 = (1<<CS11) | (1<<CS10)				; Prescaler de TIMER1 (1024)
-.equ	TIMER_START1 = 6942								; Valor inicial de TIMER1 (60s)
+.equ	TIMER_START1 = 65438							; Valor inicial de TIMER1 (60s)
+; Para hacer pruebas usar 65438
 
 // Constantes para Timer2
 .equ	PRESCALER2 = (1<<CS22) | (1<<CS21) | (1<<CS20)	; Prescaler de TIMER2 (En este caso debe ser de 1024)
-.equ	TIMER_START2 = 158								; Valor inicial de TIMER2 (1 ms)
+.equ	TIMER_START2 = 158								; Valor inicial de TIMER2 (100 ms)
 
 // R16 y R17 quedan como registros temporales
 
@@ -110,7 +111,7 @@ START:
 	// - CONFIGURACIÓN DEL RELOJ DE SISTEMA - (fclk = 1 MHz)
 	LDI		R16, (1 << CLKPCE)
 	STS		CLKPR, R16
-	LDI		R16, (1 << CLKPS3)
+	LDI		R16, (1 << CLKPS2)
 	STS		CLKPR, R16
 
 	// - HABILITACIÓN DE INTERRUPCIONES PC -
@@ -211,6 +212,34 @@ TIMER0_ISR:
 	// Sacar la señal de multiplexado en PORTC
 	OUT		PORTC, MUX_SIGNAL
 
+	// Actualizar display correspondiente
+	CPI		MUX_SIGNAL, 0X01
+	BREQ	DISPLAY4
+	CPI		MUX_SIGNAL, 0X02
+	BREQ	DISPLAY3
+	CPI		MUX_SIGNAL, 0X04
+	BREQ	DISPLAY2
+	CPI		MUX_SIGNAL, 0X08
+	BREQ	DISPLAY1
+
+// MODIFICAR DISPLAYS
+DISPLAY4:
+	MOV		OUT_PORTD, MONTH_COUNT
+	RJMP	ROTATE_SIGNAL
+
+DISPLAY3:
+	MOV		OUT_PORTD, DAY_COUNT
+	RJMP	ROTATE_SIGNAL
+
+DISPLAY2:
+	MOV		OUT_PORTD, HOUR_COUNT
+	RJMP	ROTATE_SIGNAL
+
+DISPLAY1:
+	MOV		OUT_PORTD, MINUTE_COUNT
+	RJMP	ROTATE_SIGNAL
+
+ROTATE_SIGNAL:
 	// Rotar señal de multiplexado a la izquierda (Valor Inicial 0X01)
 	ROL		MUX_SIGNAL
 
@@ -225,6 +254,16 @@ TIMER0_ISR:
 
 
 END_T0_ISR:
+	// Antes de sacar la señal, apagar completamente
+	CLR		R16
+	OUT     PORTD, R16        ; Escribir el nuevo valor de PORTD
+
+	// El siguiente fragmento de código evita que PD7 se sobrescriba
+	IN      R16, PORTD				; Leer el valor actual de PORTD
+	ANDI    R16, 0x80				; Máscara para preservar PD7 (0x7F = 0111 1111)
+	OR		OUT_PORTD, R16			; Modificar los bits deseados
+	OUT     PORTD, OUT_PORTD        ; Escribir el nuevo valor de PORTD
+
 	POP		R16
 	OUT		SREG, R16
 	POP		R16
