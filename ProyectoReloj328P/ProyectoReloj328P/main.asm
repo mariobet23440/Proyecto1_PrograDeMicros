@@ -36,7 +36,7 @@
 
 // Constantes para Timer0
 .equ	PRESCALER0 = (1<<CS01) | (1<<CS00)				; Prescaler de TIMER0 (1024)
-.equ	TIMER_START0 = 246 ;251							; Valor inicial del Timer0 (10 ms)
+.equ	TIMER_START0 = 251 ;251							; Valor inicial del Timer0 (10 ms)
 
 // Constantes para Timer1
 .equ	PRESCALER1 = (1<<CS11) | (1<<CS10)				; Prescaler de TIMER1 (1024)
@@ -254,10 +254,6 @@ ROTATE_SIGNAL:
 
 
 END_T0_ISR:
-	// Antes de sacar la señal, apagar completamente
-	CLR		R16
-	OUT     PORTD, R16        ; Escribir el nuevo valor de PORTD
-
 	// El siguiente fragmento de código evita que PD7 se sobrescriba
 	IN      R16, PORTD				; Leer el valor actual de PORTD
 	ANDI    R16, 0x80				; Máscara para preservar PD7 (0x7F = 0111 1111)
