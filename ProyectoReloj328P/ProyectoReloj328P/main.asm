@@ -5,14 +5,15 @@
 ; Author : Mario Alejandro Betancourt Franco
 ;
 
+
 // --------------------------------------------------------------------
 // | DIRECTIVAS DEL ENSAMBLADOR                                       |
 // --------------------------------------------------------------------
+
 ; Iniciar el código
 .cseg		
 .org	0x0000
 	RJMP	START
-
 
 ; Interrupciones PIN CHANGE
 .org PCI0addr
@@ -36,38 +37,57 @@
 
 // Constantes para Timer0
 .equ	PRESCALER0 = (1<<CS01) | (1<<CS00)				; Prescaler de TIMER0 (1024)
-.equ	TIMER_START0 = 251 ;251							; Valor inicial del Timer0 (10 ms)
+.equ	TIMER_START0 = 251								; Valor inicial del Timer0 (10 ms)
 
 // Constantes para Timer1
 .equ	PRESCALER1 = (1<<CS11) | (1<<CS10)				; Prescaler de TIMER1 (1024)
 .equ	TIMER_START1 = 65438							; Valor inicial de TIMER1 (60s)
 ; Para hacer pruebas usar 65438
+; Para medición de tiempo real usar
 
 // Constantes para Timer2
-.equ	PRESCALER2 = (1<<CS22) | (1<<CS21) | (1<<CS20)	; Prescaler de TIMER2 (En este caso debe ser de 1024)
+.equ	PRESCALER2 = (1<<CS22) | (1<<CS21) | (1<<CS20)	; Prescaler de TIMER2 (1024)
 .equ	TIMER_START2 = 158								; Valor inicial de TIMER2 (100 ms)
+
+// Máquina de estados finitos
+.equ	HOUR_STATE = 0x01
+.equ	DATE_STATE = 0x02
+.equ	ALARM_STATE	= 0x04
 
 // R16 y R17 quedan como registros temporales
 
-// Contadores de Tiempo
-.def	MINUTE_COUNT = R18								; Contador de Minutos
-.def	HOUR_COUNT = R19								; Contador de Horas
-.def	DAY_COUNT = R20									; Contador de Días
-.def	MONTH_COUNT = R21								; Contador de Meses
-.def	T2_AUX_COUNT = R22								; Contador auxiliar de TIMER2
+// Contadores de unidades y decenas de tiempo
+// IMPORTANTE CONSIDERAR QUE R1 Y R0 SE USAN PARA ALGUNAS INSTRUCCIONES (MUL)
+.def	MINUTE_UNITS = R2
+.def	MINUTE_TENS = R3
+.def	HOUR_UNITS = R4
+.def	HOUR_TENS = R5
+.def	DAY_UNITS = R6									; Decenas de meses
+.def	DAY_TENS = R7									; Decenas de días
+.def	MONTH_UNITS = R8 								; Unidades de meses
+.def	MONTH_TENS = R9									; Decenas de meses
+
+// R16, R17 se utilizan como registros de uso común
 
 // Registros auxiliares
-.def	OUT_PORTD = R23									; Salida de PORTD
-.def	MUX_SIGNAL = R24								; Salida de PORTC (Multiplexado de señal)
+.def	DAY_COUNT = R18
+.def	MONTH_COUNT = R19
+.def	T2_AUX_COUNT = R20								; Contador auxiliar de TIMER2 (Acceder con MOV)
+.def	OUT_PORTD = R21									; Salida de PORTD
+.def	MUX_SIGNAL = R22								; Salida de PORTC (Multiplexado de señal)
+.def	STATE = R23										; Registro de Estado
+
+// No podemos usar registros más allá del 24 porque son los punteros X, Y y Z
 
 // --------------------------------------------------------------------
 // | TABLAS															  |
 // --------------------------------------------------------------------
 
 // Definir la tabla en la memoria FLASH (Números del 1 al 10 en display de 7 segmentos)
-.org	0x100
+.org	0x500
 TABLA:
-    .db 0xE7, 0x21, 0xCB, 0x6B, 0x2D, 0x6E, 0xEE, 0x23, 0xEF, 0x2F
+	.db 0x7E, 0x30, 0x6D, 0x79, 0x33, 0xB6, 0xBE, 0x70, 0x7F, 0x7B 
+
 
 // --------------------------------------------------------------------
 // | SETUP															  |
@@ -75,14 +95,15 @@ TABLA:
 
 START:
 	// - CONFIGURACIÓN DE LA PILA - 
+	// Hacemos que el puntero de la pila apunte hacia el final de la RAM
 	LDI		R16, LOW(RAMEND)
 	OUT		SPL, R16
 	LDI		R16, HIGH(RAMEND)
 	OUT		SPH, R16
 
 	// - INICIALIZACIÓN DE TABLAS -
-	LDI		ZL, LOW(TABLA * 2)
-	LDI		ZH, HIGH(TABLA * 2)
+	LDI		ZL, LOW(TABLA << 1)
+	LDI		ZH, HIGH(TABLA << 1)
 	LPM		OUT_PORTD, Z
 	OUT		PORTD, OUT_PORTD
 	
@@ -113,6 +134,7 @@ START:
 	STS		CLKPR, R16
 	LDI		R16, (1 << CLKPS2)
 	STS		CLKPR, R16
+	
 
 	// - HABILITACIÓN DE INTERRUPCIONES PC -
 	LDI		R16, (1 << PCIE0)																	// Habilitar interrupciones PC en PORTB
@@ -137,11 +159,50 @@ START:
 // --------------------------------------------------------------------
 
 MAINLOOP:
+	; Suponiendo que MINUTE_UNITS contiene un valor entre 0 y 9
+	SBI		PORTC, PC0
+
+	MOV R16, HOUR_UNITS   ; Copiar el valor de MINUTE_UNITS en R16
+
+	; Mostrar el valor en PORTD
+	OUT		PORTD, R16          ; Mostrar el valor en PORTD, que es el valor de los segmentos para el núme
 	RJMP	MAINLOOP
+
 
 // --------------------------------------------------------------------
 // | RUTINAS NO DE INTERRUPCIÓN										  |
 // --------------------------------------------------------------------
+
+// - ACTUALIZAR DISPLAYS -
+UPDATE_DISPLAYS:
+	CPI		MUX_SIGNAL, 0X01
+	BREQ	DISPLAY4
+	CPI		MUX_SIGNAL, 0X02
+	BREQ	DISPLAY3
+	CPI		MUX_SIGNAL, 0X04
+	BREQ	DISPLAY2
+	CPI		MUX_SIGNAL, 0X08
+	BREQ	DISPLAY1
+
+// - MODIFICAR DISPLAYS -
+DISPLAY4:
+	OUT		PORTD, HOUR_TENS
+	RET
+
+DISPLAY3:
+	OUT		PORTD, HOUR_UNITS
+	RET
+
+DISPLAY2:
+	OUT		PORTD, MINUTE_TENS
+	RET
+
+DISPLAY1:
+	OUT		PORTD, MINUTE_UNITS
+	RET
+
+END:
+	RET
 
 // - REINICIAR TIMER0 -
 RESET_TIMER0:
@@ -209,37 +270,6 @@ TIMER0_ISR:
 	// Reiniciar el TIMER0
 	CALL	RESET_TIMER0
 
-	// Sacar la señal de multiplexado en PORTC
-	OUT		PORTC, MUX_SIGNAL
-
-	// Actualizar display correspondiente
-	CPI		MUX_SIGNAL, 0X01
-	BREQ	DISPLAY4
-	CPI		MUX_SIGNAL, 0X02
-	BREQ	DISPLAY3
-	CPI		MUX_SIGNAL, 0X04
-	BREQ	DISPLAY2
-	CPI		MUX_SIGNAL, 0X08
-	BREQ	DISPLAY1
-
-// MODIFICAR DISPLAYS
-DISPLAY4:
-	MOV		OUT_PORTD, MONTH_COUNT
-	RJMP	ROTATE_SIGNAL
-
-DISPLAY3:
-	MOV		OUT_PORTD, DAY_COUNT
-	RJMP	ROTATE_SIGNAL
-
-DISPLAY2:
-	MOV		OUT_PORTD, HOUR_COUNT
-	RJMP	ROTATE_SIGNAL
-
-DISPLAY1:
-	MOV		OUT_PORTD, MINUTE_COUNT
-	RJMP	ROTATE_SIGNAL
-
-ROTATE_SIGNAL:
 	// Rotar señal de multiplexado a la izquierda (Valor Inicial 0X01)
 	ROL		MUX_SIGNAL
 
@@ -254,12 +284,6 @@ ROTATE_SIGNAL:
 
 
 END_T0_ISR:
-	// El siguiente fragmento de código evita que PD7 se sobrescriba
-	IN      R16, PORTD				; Leer el valor actual de PORTD
-	ANDI    R16, 0x80				; Máscara para preservar PD7 (0x7F = 0111 1111)
-	OR		OUT_PORTD, R16			; Modificar los bits deseados
-	OUT     PORTD, OUT_PORTD        ; Escribir el nuevo valor de PORTD
-
 	POP		R16
 	OUT		SREG, R16
 	POP		R16
@@ -277,29 +301,99 @@ TIMER1_ISR:
 	// Reiniciar el TIMER1
 	CALL	RESET_TIMER1
 
-	// Incrementar el contador de minutos
-	INC		MINUTE_COUNT
+	// INCREMENTO DE UNIDADES DE MINUTOS
+	// Incrementar MINUTE_UNITS
+	MOV		R16, MINUTE_UNITS
+	INC		R16
+	MOV		MINUTE_UNITS, R16	
+	
+	// INCREMENTO DE DECENAS DE MINUTOS
+	// Si MINUTE_UNITS es mayor o igual a 10, limpiarlo e incrementar MINUTE_TENS
+	CPI		R16, 10
+	BRLO	INTERMEDIATE_JUMP1
+	CLR		MINUTE_UNITS
+	MOV		R16, MINUTE_TENS
+	INC		R16
+	MOV		MINUTE_TENS, R16
+	
+	// INCREMENTO DE UNIDADES DE HORAS
+	// Si MINUTE_TENS es mayor o igual a 6, limpiarlo e incrementar HOUR_UNITS
+	CPI		R16, 6
+	BRLO	INTERMEDIATE_JUMP1
+	CLR		MINUTE_TENS
+	MOV		R16, HOUR_UNITS
+	INC		R16
+	MOV		HOUR_UNITS, R16
 
-	// Si el contador de minutos no excede 60 salir
-	CPI		MINUTE_COUNT, 60
-	BRLO	END_T1_ISR
+	// INCREMENTO DE DECENAS DE HORAS
+	// Si HOUR_UNITS es mayor o igual a 10, limpiarlo e incrementar HOUR_TENS
+	CPI		R16, 10
+	BRLO	INTERMEDIATE_JUMP1
+	CLR		HOUR_UNITS
+	MOV		R16, HOUR_TENS
+	INC		R16
+	MOV		HOUR_TENS, R16
 
-	// Si han pasado más de 60 minutos, reiniciar e incrementar contador de horas
-	CLR		MINUTE_COUNT
-	INC		HOUR_COUNT
+	// INCREMENTO DE UNIDADES DE DÍA
+	// Si HOUR_TENS no es igual a 2 terminar subrutina
+	CPI		R16, 2
+	BRLO	INTERMEDIATE_JUMP1
 
-	// Si el contador de horas no excede 24 salir
-	CPI		HOUR_COUNT, 24
-	BRLO	END_T1_ISR
+	// Si HOUR_UNITS es menor que 4 terminar subrutina
+	MOV		R16, HOUR_UNITS		; Importante cargar los contenidos de HOUR_UNITS
+	CPI		R16, 4
+	BRLO	INTERMEDIATE_JUMP1
 
-	// Si han pasado más de 24 horas, reiniciar e incrementar el contador de días
-	CLR		HOUR_COUNT
-	RJMP	AUMENTAR_DIA
+	// Si no, limpiar ambos contadores e incrementar DAY_UNITS
+	CLR		HOUR_UNITS
+	CLR		HOUR_TENS
+	MOV		R16, DAY_UNITS
+	INC		R16
+	MOV		DAY_UNITS, R16
 
-AUMENTAR_DIA:
-	// Aumentar el contador de días
-	INC		DAY_COUNT
+	// INCREMENTO DE DECENAS DE DÍAS
+	CPI		R16, 10
+	BRLO	INTERMEDIATE_JUMP1
+	CLR		DAY_UNITS
+	MOV		R16, DAY_TENS
+	INC		R16
+	MOV		DAY_TENS, R16
+	
+	// Antes de ejecutar todo lo siguiente, determinar si el número de días no excede 28
+	CPI		R16, 2			; Comparar DAY_TENS con 2
+	BRLO	INTERMEDIATE_JUMP1
+	MOV		R16, DAY_UNITS
+	CPI		R16, 8
+	BRLO	INTERMEDIATE_JUMP1
+	// Esto ayudará a evitar las comparaciones para incrementar meses cuando no sean necesarias
+	
+	// Pero, si ese no es el caso
+	// "Goku eta vaina se puso seria"
+	// Si el número de días excede 29, incrementar mes (Muchas comparaciones)
+	RJMP	COMPARACIONES_MES
 
+INTERMEDIATE_JUMP1:
+	JMP	END_T1_ISR
+
+	
+// COMPARACIONES PARA INCREMENTO DE MESES
+COMPARACIONES_MES:
+	// Calcular el número de días usando las decenas y unidades de día
+	MOV		R16, DAY_UNITS		; Cargamos DAY_UNITS a R16
+	ADD		DAY_COUNT, R16		; Sumamos unidades a R18
+	LDI		R16, 10				; Cargamos 10 a R16
+	MUL		R16, DAY_TENS		; Multiplicar DAY_TENS por 10
+	MOV		R16, R0				; El byte bajo de la multiplicación se guarda en R0 (Limitado a 10)
+	ADD		DAY_COUNT, R16		; Ahora R18 contiene el número de días transcurridos
+
+	// Hacemos lo mismo con MONTH_COUNT
+	MOV		R16, MONTH_UNITS	; Cargamos MONTH_UNITS a R16
+	ADD		MONTH_COUNT, R16	; Sumamos unidades a R18
+	LDI		R16, 10				; Cargamos 10 a R16
+	MUL		R16, MONTH_TENS		; Multiplicar MONTH_TENS por 10
+	MOV		R16, R0				; El byte bajo de la multiplicación se guarda en R0 (Limitado a 10)
+	ADD		MONTH_COUNT, R16	; Ahora R18 contiene el número de meses transcurridos
+	
 	// Verificar si el mes es febrero
 	CPI		MONTH_COUNT, 2
 	BREQ	FEBRERO
@@ -322,35 +416,68 @@ FEBRERO:
 	CPI		DAY_COUNT, 28
     BRLO	END_T1_ISR
 
-	// Si han pasado más de 28 días, reiniciar a uno
-    LDI		DAY_COUNT, 1
+	// Si han pasado más de 28 días, reiniciar contadores de días
+    LDI		R16, 1
+	MOV		DAY_UNITS, R16
+	CLR		DAY_TENS
     RJMP	AUMENTAR_MES
 
 MESES_30:
 	// Verificar si el contador pasa de 30
-	CPI		DAY_COUNT, 31
+	CPI		DAY_COUNT, 30
     BRLO	END_T1_ISR
 
-	// Si han pasado más de 30 días, reiniciar a uno
-    LDI		DAY_COUNT, 1
+	// Si han pasado más de 30 días, reiniciar contadores de días
+    LDI		R16, 1
+	MOV		DAY_UNITS, R16
+	CLR		DAY_TENS
     RJMP	AUMENTAR_MES
 
 MESES_31:
 	// Verificar si el contador pasa de 31
-	CPI		DAY_COUNT, 32
+	CPI		DAY_COUNT, 31
     BRLO	END_T1_ISR
 
-	// Si han pasado más de 31 días, reiniciar a uno
-    LDI		DAY_COUNT, 1
+	// Si han pasado más de 31 días, reiniciar contadores de días
+    LDI		R16, 1
+	MOV		DAY_UNITS, R16
+	CLR		DAY_TENS
     RJMP	AUMENTAR_MES
 
-// Aumentar mes y reiniciar si pasan más de 12 meses
+
+// AUMENTAR MES
 AUMENTAR_MES:
+	// Aumentar contador de meses
 	INC		MONTH_COUNT
 	CPI		MONTH_COUNT, 12
+	BRLO	NO_DICIEMBRE
+
+	// Si las unidades de meses excenden 12, reiniciar ambos contadores
+	CPI		MONTH_COUNT, 12
 	BRLO	END_T1_ISR
-	LDI		MONTH_COUNT, 1
+	LDI		R16, 1
+	MOV		MONTH_UNITS, R16
+	CLR		MONTH_TENS
 	RJMP	END_T1_ISR
+
+// Meses que NO son diciembre
+NO_DICIEMBRE:
+	// Incrementar contador de unidades
+	MOV		R16, MONTH_UNITS
+	INC		R16
+	MOV		MONTH_UNITS, R16
+	CPI		R16, 10
+	BRLO	END_T1_ISR
+
+	// Incrementar contador de decenas
+	CLR		MONTH_UNITS
+	MOV		R16, MONTH_TENS
+	INC		R16
+	MOV		MONTH_TENS, R16
+
+	// No hacer nada
+	BRLO	END_T1_ISR
+
 
 // Terminar Rutina de Interrupción
 END_T1_ISR:
