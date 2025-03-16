@@ -1,5 +1,5 @@
 
-AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm Thu Mar 13 16:39:56 2025
+AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm Fri Mar 14 12:33:29 2025
 
 [builtin](2): Including file 'C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\m328Pdef.inc'
 [builtin](2): Including file 'C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\m328Pdef.inc'
@@ -1003,19 +1003,19 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  
                                  ; Interrupciones PIN CHANGE
                                  .org PCI0addr
-000006 c55c                      	RJMP PCINT_ISR		; Vector de interrupción de Pin Change
+000006 c56b                      	RJMP PCINT_ISR		; Vector de interrupción de Pin Change
                                  
                                  ; Interrupciones por overflow de TIMER0 (Modo Normal)
                                  .org OVF0addr				; Vector de interrupción para TIMER0_OVF
-000020 c549                          RJMP TIMER0_ISR			; Saltar a la rutina de interrupción
+000020 c558                          RJMP TIMER0_ISR			; Saltar a la rutina de interrupción
                                  
                                  ; Interrupciones por overflow de TIMER1 (Modo Normal)
                                  .org OVF1addr				; Vector de interrupción para TIMER1_OVF
-00001a c55e                          RJMP TIMER1_ISR			; Saltar a la rutina de interrupción
+00001a c56d                          RJMP TIMER1_ISR			; Saltar a la rutina de interrupción
                                  
                                  ; Interrupciones por overflow de TIMER2 (Modo Normal)
                                  .org OVF2addr				; Vector de interrupción para TIMER2_OVF
-000012 c5d8                          RJMP TIMER2_ISR			; Saltar a la rutina de interrupción
+000012 c5e7                          RJMP TIMER2_ISR			; Saltar a la rutina de interrupción
                                  
                                  // --------------------------------------------------------------------
                                  // | DEFINICIONES DE REGISTROS DE USO COMÚN Y CONSTANTES DE ASSEMBLER |
@@ -1029,7 +1029,7 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  .equ	PRESCALER1 = (1<<CS11) | (1<<CS10)				; Prescaler de TIMER1 (1024)
                                  .equ	TIMER_START1 = 65438							; Valor inicial de TIMER1 (60s)
                                  ; Para hacer pruebas usar 65438
-                                 ; Para medición de tiempo real usar
+                                 ; Para medición de tiempo real usar 6942
                                  
                                  // Constantes para Timer2
                                  .equ	PRESCALER2 = (1<<CS22) | (1<<CS21) | (1<<CS20)	; Prescaler de TIMER2 (1024)
@@ -1072,11 +1072,11 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  // Definir la tabla en la memoria FLASH (Números del 1 al 10 en display de 7 segmentos)
                                  .org	0x500
                                  TABLA:
-000500 307e
-000501 796d
-000502 b633
-000503 70be
-000504 7b7f                      	.db 0x7E, 0x30, 0x6D, 0x79, 0x33, 0xB6, 0xBE, 0x70, 0x7F, 0x7B 
+000500 4477
+000501 6d6b
+000502 3d5c
+000503 643f
+000504 7c7f                      	.db 0b1110111, 0b1000100, 0b1101011, 0b1101101, 0b1011100, 0b0111101, 0b0111111, 0b1100100, 0b1111111, 0b1111100 
                                  
                                  
                                  // --------------------------------------------------------------------
@@ -1133,9 +1133,9 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
 000524 9300 006b                 	STS		PCMSK0, R16
                                  	
                                  	// - REINICIAR TIMERS Y HABILITAR INTERRUPCIONES POR OVERFLOWS DE TIMERS -
-000526 940e 0544                 	CALL	RESET_TIMER0
-000528 940e 054c                 	CALL	RESET_TIMER1
-00052a 940e 0559                 	CALL	RESET_TIMER2
+000526 940e 0553                 	CALL	RESET_TIMER0
+000528 940e 055b                 	CALL	RESET_TIMER1
+00052a 940e 0568                 	CALL	RESET_TIMER2
                                  
                                  	// - HABILITACIÓN DE INTERRUPCIONES GLOBALES -
 00052c 9478                      	SEI
@@ -1149,14 +1149,8 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  // --------------------------------------------------------------------
                                  
                                  MAINLOOP:
-                                 	; Suponiendo que MINUTE_UNITS contiene un valor entre 0 y 9
-00052f 9a40                      	SBI		PORTC, PC0
-                                 
-000530 2d04                      	MOV R16, HOUR_UNITS   ; Copiar el valor de MINUTE_UNITS en R16
-                                 
-                                 	; Mostrar el valor en PORTD
-000531 b90b                      	OUT		PORTD, R16          ; Mostrar el valor en PORTD, que es el valor de los segmentos para el núme
-000532 cffc                      	RJMP	MAINLOOP
+00052f 940e 0532                 	CALL	UPDATE_DISPLAYS
+000531 cffd                      	RJMP	MAINLOOP
                                  
                                  
                                  // --------------------------------------------------------------------
@@ -1165,349 +1159,373 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  
                                  // - ACTUALIZAR DISPLAYS -
                                  UPDATE_DISPLAYS:
-000533 3061                      	CPI		MUX_SIGNAL, 0X01
-000534 f031                      	BREQ	DISPLAY4
-000535 3062                      	CPI		MUX_SIGNAL, 0X02
-000536 f031                      	BREQ	DISPLAY3
-000537 3064                      	CPI		MUX_SIGNAL, 0X04
-000538 f031                      	BREQ	DISPLAY2
-000539 3068                      	CPI		MUX_SIGNAL, 0X08
-00053a f031                      	BREQ	DISPLAY1
+000532 3061                      	CPI		MUX_SIGNAL, 0X01
+000533 f031                      	BREQ	DISPLAY4
+000534 3062                      	CPI		MUX_SIGNAL, 0X02
+000535 f041                      	BREQ	DISPLAY3
+000536 3064                      	CPI		MUX_SIGNAL, 0X04
+000537 f051                      	BREQ	DISPLAY2
+000538 3068                      	CPI		MUX_SIGNAL, 0X08
+000539 f061                      	BREQ	DISPLAY1
                                  
                                  // - MODIFICAR DISPLAYS -
                                  DISPLAY4:
-00053b b85b                      	OUT		PORTD, HOUR_TENS
-00053c 9508                      	RET
+00053a e001                      	LDI		R16, 0X01
+00053b b908                      	OUT		PORTC, R16
+00053c 2d55                      	MOV		OUT_PORTD, HOUR_TENS
+00053d c00c                      	RJMP	SHOW_NUMBER
                                  
                                  DISPLAY3:
-00053d b84b                      	OUT		PORTD, HOUR_UNITS
-00053e 9508                      	RET
+00053e e002                      	LDI		R16, 0X02
+00053f b908                      	OUT		PORTC, R16
+000540 2d54                      	MOV		OUT_PORTD, HOUR_UNITS
+000541 c008                      	RJMP	SHOW_NUMBER
                                  
                                  DISPLAY2:
-00053f b83b                      	OUT		PORTD, MINUTE_TENS
-000540 9508                      	RET
+000542 e004                      	LDI		R16, 0X04
+000543 b908                      	OUT		PORTC, R16
+000544 2d53                      	MOV		OUT_PORTD, MINUTE_TENS
+000545 c004                      	RJMP	SHOW_NUMBER
                                  
                                  DISPLAY1:
-000541 b82b                      	OUT		PORTD, MINUTE_UNITS
-000542 9508                      	RET
+000546 e008                      	LDI		R16, 0X08
+000547 b908                      	OUT		PORTC, R16
+000548 2d52                      	MOV		OUT_PORTD, MINUTE_UNITS
+000549 c000                      	RJMP	SHOW_NUMBER
                                  
-                                 END:
-000543 9508                      	RET
+                                 // Sacar el número correspondiente en PORTD
+                                 SHOW_NUMBER:
+                                 	// Guardar bit en displays
+00054a b11b                      	IN		R17, PORTD
+00054b fb17                      	BST		R17, 7
+                                 	
+                                 	// Sacar dato de tabla
+00054c e0fa                      	LDI		ZH, HIGH(TABLA<<1)
+00054d e0e0                      	LDI		ZL, LOW(TABLA<<1)
+00054e 0fe5                      	ADD		ZL, OUT_PORTD
+00054f 9104                      	LPM		R16, Z
+                                 	
+                                 	// Cargar bit de leds intermitentes
+000550 f907                      	BLD		R16, 7
+                                 
+                                 	// Mostrar en PORTD
+000551 b90b                      	OUT		PORTD, R16
+000552 9508                      	RET
                                  
                                  // - REINICIAR TIMER0 -
                                  RESET_TIMER0:
                                  	// - PRESCALER Y VALOR INICIAL -
-000544 e003                      	LDI     R16, PRESCALER0
-000545 bd05                          OUT     TCCR0B, R16
-000546 ef0b                          LDI     R16, TIMER_START0
-000547 bd06                          OUT     TCNT0, R16
+000553 e003                      	LDI     R16, PRESCALER0
+000554 bd05                          OUT     TCCR0B, R16
+000555 ef0b                          LDI     R16, TIMER_START0
+000556 bd06                          OUT     TCNT0, R16
                                  
                                  	// - HABILITACIÓN DE INTERRUPCIONES POR OVERFLOW EN TIMER0 -
-000548 e001                      	LDI		R16, (1 << TOIE0)
-000549 9300 006e                 	STS		TIMSK0, R16
-00054b 9508                      	RET
+000557 e001                      	LDI		R16, (1 << TOIE0)
+000558 9300 006e                 	STS		TIMSK0, R16
+00055a 9508                      	RET
                                  
                                  
                                  // - REINICIAR TIMER1 -
                                  RESET_TIMER1:
                                  	// - PRESCALER Y VALOR INICIAL -
-00054c e003                      	LDI     R16, PRESCALER1
-00054d 9300 0081                     STS     TCCR1B, R16
-00054f e90e                          LDI     R16, LOW(TIMER_START1)
-000550 9300 0084                     STS     TCNT1L, R16
-000552 ef0f                      	LDI     R16, HIGH(TIMER_START1)
-000553 9300 0085                     STS     TCNT1H, R16
+00055b e003                      	LDI     R16, PRESCALER1
+00055c 9300 0081                     STS     TCCR1B, R16
+00055e e90e                          LDI     R16, LOW(TIMER_START1)
+00055f 9300 0084                     STS     TCNT1L, R16
+000561 ef0f                      	LDI     R16, HIGH(TIMER_START1)
+000562 9300 0085                     STS     TCNT1H, R16
                                  
                                  	// - HABILITACIÓN DE INTERRUPCIONES POR OVERFLOW EN TIMER1 -
-000555 e001                      	LDI		R16, (1 << TOIE1)
-000556 9300 006f                 	STS		TIMSK1, R16
-000558 9508                      	RET
+000564 e001                      	LDI		R16, (1 << TOIE1)
+000565 9300 006f                 	STS		TIMSK1, R16
+000567 9508                      	RET
                                  
                                  // - REINICIAR TIMER2 -
                                  RESET_TIMER2:
                                  	// - PRESCALER Y VALOR INICIAL -
-000559 e007                      	LDI     R16, PRESCALER2
-00055a 9300 00b1                     STS     TCCR2B, R16
-00055c e90e                          LDI     R16, TIMER_START2
-00055d 9300 00b2                     STS     TCNT2, R16
+000568 e007                      	LDI     R16, PRESCALER2
+000569 9300 00b1                     STS     TCCR2B, R16
+00056b e90e                          LDI     R16, TIMER_START2
+00056c 9300 00b2                     STS     TCNT2, R16
                                  
                                  	// - HABILITACIÓN DE INTERRUPCIONES POR OVERFLOW EN TIMER2 -
-00055f e001                      	LDI		R16, (1 << TOIE2)
-000560 9300 0070                 	STS		TIMSK2, R16
-000562 9508                      	RET
+00056e e001                      	LDI		R16, (1 << TOIE2)
+00056f 9300 0070                 	STS		TIMSK2, R16
+000571 9508                      	RET
                                  
                                  // --------------------------------------------------------------------
                                  // | RUTINAS DE INTERRUPCIÓN POR CAMBIO EN PINES					  |															  |
                                  // --------------------------------------------------------------------
                                  PCINT_ISR:
-000563 930f                      	PUSH	R16
-000564 b70f                      	IN		R16, SREG
-000565 930f                      	PUSH	R16
+000572 930f                      	PUSH	R16
+000573 b70f                      	IN		R16, SREG
+000574 930f                      	PUSH	R16
                                  
-000566 910f                      	POP		R16
-000567 bf0f                      	OUT		SREG, R16
-000568 910f                      	POP		R16
-000569 9518                      	RETI
+000575 910f                      	POP		R16
+000576 bf0f                      	OUT		SREG, R16
+000577 910f                      	POP		R16
+000578 9518                      	RETI
                                  
                                  // --------------------------------------------------------------------
                                  // | RUTINAS DE INTERRUPCIÓN CON TIMER0								  |
                                  // --------------------------------------------------------------------
                                  TIMER0_ISR:
-00056a 930f                      	PUSH	R16
-00056b b70f                      	IN		R16, SREG
-00056c 930f                      	PUSH	R16
+000579 930f                      	PUSH	R16
+00057a b70f                      	IN		R16, SREG
+00057b 930f                      	PUSH	R16
                                  
                                  	// Reiniciar el TIMER0
-00056d 940e 0544                 	CALL	RESET_TIMER0
+00057c 940e 0553                 	CALL	RESET_TIMER0
                                  
                                  	// Rotar señal de multiplexado a la izquierda (Valor Inicial 0X01)
-00056f 1f66                      	ROL		MUX_SIGNAL
+00057e 1f66                      	ROL		MUX_SIGNAL
                                  
                                  	// Aplicar máscara para PC1-PC3
-000570 706f                      	ANDI	MUX_SIGNAL, 0X0F
+00057f 706f                      	ANDI	MUX_SIGNAL, 0X0F
                                  
                                  	// Si el bit de encendido desaparece, reiniciar
-000571 3060                      	CPI		MUX_SIGNAL, 0
-000572 f411                      	BRNE	END_T0_ISR
-000573 e061                      	LDI		MUX_SIGNAL, 0X01
-000574 c000                      	RJMP	END_T0_ISR
+000580 3060                      	CPI		MUX_SIGNAL, 0
+000581 f411                      	BRNE	END_T0_ISR
+000582 e061                      	LDI		MUX_SIGNAL, 0X01
+000583 c000                      	RJMP	END_T0_ISR
                                  
                                  
                                  END_T0_ISR:
-000575 910f                      	POP		R16
-000576 bf0f                      	OUT		SREG, R16
-000577 910f                      	POP		R16
-000578 9518                      	RETI
+000584 910f                      	POP		R16
+000585 bf0f                      	OUT		SREG, R16
+000586 910f                      	POP		R16
+000587 9518                      	RETI
                                  
                                  
                                  // --------------------------------------------------------------------
                                  // | RUTINAS DE INTERRUPCIÓN CON TIMER1								  |
                                  // --------------------------------------------------------------------
                                  TIMER1_ISR:
-000579 930f                      	PUSH	R16
-00057a b70f                      	IN		R16, SREG
-00057b 930f                      	PUSH	R16
+000588 930f                      	PUSH	R16
+000589 b70f                      	IN		R16, SREG
+00058a 930f                      	PUSH	R16
                                  
                                  	// Reiniciar el TIMER1
-00057c 940e 054c                 	CALL	RESET_TIMER1
+00058b 940e 055b                 	CALL	RESET_TIMER1
                                  
                                  	// INCREMENTO DE UNIDADES DE MINUTOS
                                  	// Incrementar MINUTE_UNITS
-00057e 2d02                      	MOV		R16, MINUTE_UNITS
-00057f 9503                      	INC		R16
-000580 2e20                      	MOV		MINUTE_UNITS, R16	
+00058d 2d02                      	MOV		R16, MINUTE_UNITS
+00058e 9503                      	INC		R16
+00058f 2e20                      	MOV		MINUTE_UNITS, R16	
                                  	
                                  	// INCREMENTO DE DECENAS DE MINUTOS
                                  	// Si MINUTE_UNITS es mayor o igual a 10, limpiarlo e incrementar MINUTE_TENS
-000581 300a                      	CPI		R16, 10
-000582 f130                      	BRLO	INTERMEDIATE_JUMP1
-000583 2422                      	CLR		MINUTE_UNITS
-000584 2d03                      	MOV		R16, MINUTE_TENS
-000585 9503                      	INC		R16
-000586 2e30                      	MOV		MINUTE_TENS, R16
+000590 300a                      	CPI		R16, 10
+000591 f130                      	BRLO	INTERMEDIATE_JUMP1
+000592 2422                      	CLR		MINUTE_UNITS
+000593 2d03                      	MOV		R16, MINUTE_TENS
+000594 9503                      	INC		R16
+000595 2e30                      	MOV		MINUTE_TENS, R16
                                  	
                                  	// INCREMENTO DE UNIDADES DE HORAS
                                  	// Si MINUTE_TENS es mayor o igual a 6, limpiarlo e incrementar HOUR_UNITS
-000587 3006                      	CPI		R16, 6
-000588 f100                      	BRLO	INTERMEDIATE_JUMP1
-000589 2433                      	CLR		MINUTE_TENS
-00058a 2d04                      	MOV		R16, HOUR_UNITS
-00058b 9503                      	INC		R16
-00058c 2e40                      	MOV		HOUR_UNITS, R16
+000596 3006                      	CPI		R16, 6
+000597 f100                      	BRLO	INTERMEDIATE_JUMP1
+000598 2433                      	CLR		MINUTE_TENS
+000599 2d04                      	MOV		R16, HOUR_UNITS
+00059a 9503                      	INC		R16
+00059b 2e40                      	MOV		HOUR_UNITS, R16
                                  
                                  	// INCREMENTO DE DECENAS DE HORAS
                                  	// Si HOUR_UNITS es mayor o igual a 10, limpiarlo e incrementar HOUR_TENS
-00058d 300a                      	CPI		R16, 10
-00058e f0d0                      	BRLO	INTERMEDIATE_JUMP1
-00058f 2444                      	CLR		HOUR_UNITS
-000590 2d05                      	MOV		R16, HOUR_TENS
-000591 9503                      	INC		R16
-000592 2e50                      	MOV		HOUR_TENS, R16
+00059c 300a                      	CPI		R16, 10
+00059d f0d0                      	BRLO	INTERMEDIATE_JUMP1
+00059e 2444                      	CLR		HOUR_UNITS
+00059f 2d05                      	MOV		R16, HOUR_TENS
+0005a0 9503                      	INC		R16
+0005a1 2e50                      	MOV		HOUR_TENS, R16
                                  
                                  	// INCREMENTO DE UNIDADES DE DÍA
                                  	// Si HOUR_TENS no es igual a 2 terminar subrutina
-000593 3002                      	CPI		R16, 2
-000594 f0a0                      	BRLO	INTERMEDIATE_JUMP1
+0005a2 3002                      	CPI		R16, 2
+0005a3 f0a0                      	BRLO	INTERMEDIATE_JUMP1
                                  
                                  	// Si HOUR_UNITS es menor que 4 terminar subrutina
-000595 2d04                      	MOV		R16, HOUR_UNITS		; Importante cargar los contenidos de HOUR_UNITS
-000596 3004                      	CPI		R16, 4
-000597 f088                      	BRLO	INTERMEDIATE_JUMP1
+0005a4 2d04                      	MOV		R16, HOUR_UNITS		; Importante cargar los contenidos de HOUR_UNITS
+0005a5 3004                      	CPI		R16, 4
+0005a6 f088                      	BRLO	INTERMEDIATE_JUMP1
                                  
                                  	// Si no, limpiar ambos contadores e incrementar DAY_UNITS
-000598 2444                      	CLR		HOUR_UNITS
-000599 2455                      	CLR		HOUR_TENS
-00059a 2d06                      	MOV		R16, DAY_UNITS
-00059b 9503                      	INC		R16
-00059c 2e60                      	MOV		DAY_UNITS, R16
+0005a7 2444                      	CLR		HOUR_UNITS
+0005a8 2455                      	CLR		HOUR_TENS
+0005a9 2d06                      	MOV		R16, DAY_UNITS
+0005aa 9503                      	INC		R16
+0005ab 2e60                      	MOV		DAY_UNITS, R16
                                  
                                  	// INCREMENTO DE DECENAS DE DÍAS
-00059d 300a                      	CPI		R16, 10
-00059e f050                      	BRLO	INTERMEDIATE_JUMP1
-00059f 2466                      	CLR		DAY_UNITS
-0005a0 2d07                      	MOV		R16, DAY_TENS
-0005a1 9503                      	INC		R16
-0005a2 2e70                      	MOV		DAY_TENS, R16
+0005ac 300a                      	CPI		R16, 10
+0005ad f050                      	BRLO	INTERMEDIATE_JUMP1
+0005ae 2466                      	CLR		DAY_UNITS
+0005af 2d07                      	MOV		R16, DAY_TENS
+0005b0 9503                      	INC		R16
+0005b1 2e70                      	MOV		DAY_TENS, R16
                                  	
                                  	// Antes de ejecutar todo lo siguiente, determinar si el número de días no excede 28
-0005a3 3002                      	CPI		R16, 2			; Comparar DAY_TENS con 2
-0005a4 f020                      	BRLO	INTERMEDIATE_JUMP1
-0005a5 2d06                      	MOV		R16, DAY_UNITS
-0005a6 3008                      	CPI		R16, 8
-0005a7 f008                      	BRLO	INTERMEDIATE_JUMP1
+0005b2 3002                      	CPI		R16, 2			; Comparar DAY_TENS con 2
+0005b3 f020                      	BRLO	INTERMEDIATE_JUMP1
+0005b4 2d06                      	MOV		R16, DAY_UNITS
+0005b5 3008                      	CPI		R16, 8
+0005b6 f008                      	BRLO	INTERMEDIATE_JUMP1
                                  	// Esto ayudará a evitar las comparaciones para incrementar meses cuando no sean necesarias
                                  	
                                  	// Pero, si ese no es el caso
                                  	// "Goku eta vaina se puso seria"
                                  	// Si el número de días excede 29, incrementar mes (Muchas comparaciones)
-0005a8 c002                      	RJMP	COMPARACIONES_MES
+0005b7 c002                      	RJMP	COMPARACIONES_MES
                                  
                                  INTERMEDIATE_JUMP1:
-0005a9 940c 05e7                 	JMP	END_T1_ISR
+0005b8 940c 05f6                 	JMP	END_T1_ISR
                                  
                                  	
                                  // COMPARACIONES PARA INCREMENTO DE MESES
                                  COMPARACIONES_MES:
                                  	// Calcular el número de días usando las decenas y unidades de día
-0005ab 2d06                      	MOV		R16, DAY_UNITS		; Cargamos DAY_UNITS a R16
-0005ac 0f20                      	ADD		DAY_COUNT, R16		; Sumamos unidades a R18
-0005ad e00a                      	LDI		R16, 10				; Cargamos 10 a R16
-0005ae 9d07                      	MUL		R16, DAY_TENS		; Multiplicar DAY_TENS por 10
-0005af 2d00                      	MOV		R16, R0				; El byte bajo de la multiplicación se guarda en R0 (Limitado a 10)
-0005b0 0f20                      	ADD		DAY_COUNT, R16		; Ahora R18 contiene el número de días transcurridos
+0005ba 2d06                      	MOV		R16, DAY_UNITS		; Cargamos DAY_UNITS a R16
+0005bb 0f20                      	ADD		DAY_COUNT, R16		; Sumamos unidades a R18
+0005bc e00a                      	LDI		R16, 10				; Cargamos 10 a R16
+0005bd 9d07                      	MUL		R16, DAY_TENS		; Multiplicar DAY_TENS por 10
+0005be 2d00                      	MOV		R16, R0				; El byte bajo de la multiplicación se guarda en R0 (Limitado a 10)
+0005bf 0f20                      	ADD		DAY_COUNT, R16		; Ahora R18 contiene el número de días transcurridos
                                  
                                  	// Hacemos lo mismo con MONTH_COUNT
-0005b1 2d08                      	MOV		R16, MONTH_UNITS	; Cargamos MONTH_UNITS a R16
-0005b2 0f30                      	ADD		MONTH_COUNT, R16	; Sumamos unidades a R18
-0005b3 e00a                      	LDI		R16, 10				; Cargamos 10 a R16
-0005b4 9d09                      	MUL		R16, MONTH_TENS		; Multiplicar MONTH_TENS por 10
-0005b5 2d00                      	MOV		R16, R0				; El byte bajo de la multiplicación se guarda en R0 (Limitado a 10)
-0005b6 0f30                      	ADD		MONTH_COUNT, R16	; Ahora R18 contiene el número de meses transcurridos
+0005c0 2d08                      	MOV		R16, MONTH_UNITS	; Cargamos MONTH_UNITS a R16
+0005c1 0f30                      	ADD		MONTH_COUNT, R16	; Sumamos unidades a R18
+0005c2 e00a                      	LDI		R16, 10				; Cargamos 10 a R16
+0005c3 9d09                      	MUL		R16, MONTH_TENS		; Multiplicar MONTH_TENS por 10
+0005c4 2d00                      	MOV		R16, R0				; El byte bajo de la multiplicación se guarda en R0 (Limitado a 10)
+0005c5 0f30                      	ADD		MONTH_COUNT, R16	; Ahora R18 contiene el número de meses transcurridos
                                  	
                                  	// Verificar si el mes es febrero
-0005b7 3032                      	CPI		MONTH_COUNT, 2
-0005b8 f049                      	BREQ	FEBRERO
+0005c6 3032                      	CPI		MONTH_COUNT, 2
+0005c7 f049                      	BREQ	FEBRERO
                                  
                                  	// Meses con 30 días (abril, junio, septiembre, noviembre)
-0005b9 3034                          CPI		MONTH_COUNT, 4
-0005ba f069                          BREQ	MESES_30
-0005bb 3036                          CPI		MONTH_COUNT, 6
-0005bc f059                          BREQ	MESES_30
-0005bd 3039                          CPI		MONTH_COUNT, 9
-0005be f049                          BREQ	MESES_30
-0005bf 303b                          CPI		MONTH_COUNT, 11
-0005c0 f039                          BREQ	MESES_30
+0005c8 3034                          CPI		MONTH_COUNT, 4
+0005c9 f069                          BREQ	MESES_30
+0005ca 3036                          CPI		MONTH_COUNT, 6
+0005cb f059                          BREQ	MESES_30
+0005cc 3039                          CPI		MONTH_COUNT, 9
+0005cd f049                          BREQ	MESES_30
+0005ce 303b                          CPI		MONTH_COUNT, 11
+0005cf f039                          BREQ	MESES_30
                                  
                                  	// Si el mes no es de 30 días y no es febrero, es de 31 días
-0005c1 c00c                      	RJMP	MESES_31
+0005d0 c00c                      	RJMP	MESES_31
                                  
                                  FEBRERO:
                                  	// Verificar si el contador pasa de 28
-0005c2 312c                      	CPI		DAY_COUNT, 28
-0005c3 f118                          BRLO	END_T1_ISR
+0005d1 312c                      	CPI		DAY_COUNT, 28
+0005d2 f118                          BRLO	END_T1_ISR
                                  
                                  	// Si han pasado más de 28 días, reiniciar contadores de días
-0005c4 e001                          LDI		R16, 1
-0005c5 2e60                      	MOV		DAY_UNITS, R16
-0005c6 2477                      	CLR		DAY_TENS
-0005c7 c00c                          RJMP	AUMENTAR_MES
+0005d3 e001                          LDI		R16, 1
+0005d4 2e60                      	MOV		DAY_UNITS, R16
+0005d5 2477                      	CLR		DAY_TENS
+0005d6 c00c                          RJMP	AUMENTAR_MES
                                  
                                  MESES_30:
                                  	// Verificar si el contador pasa de 30
-0005c8 312e                      	CPI		DAY_COUNT, 30
-0005c9 f0e8                          BRLO	END_T1_ISR
+0005d7 312e                      	CPI		DAY_COUNT, 30
+0005d8 f0e8                          BRLO	END_T1_ISR
                                  
                                  	// Si han pasado más de 30 días, reiniciar contadores de días
-0005ca e001                          LDI		R16, 1
-0005cb 2e60                      	MOV		DAY_UNITS, R16
-0005cc 2477                      	CLR		DAY_TENS
-0005cd c006                          RJMP	AUMENTAR_MES
+0005d9 e001                          LDI		R16, 1
+0005da 2e60                      	MOV		DAY_UNITS, R16
+0005db 2477                      	CLR		DAY_TENS
+0005dc c006                          RJMP	AUMENTAR_MES
                                  
                                  MESES_31:
                                  	// Verificar si el contador pasa de 31
-0005ce 312f                      	CPI		DAY_COUNT, 31
-0005cf f0b8                          BRLO	END_T1_ISR
+0005dd 312f                      	CPI		DAY_COUNT, 31
+0005de f0b8                          BRLO	END_T1_ISR
                                  
                                  	// Si han pasado más de 31 días, reiniciar contadores de días
-0005d0 e001                          LDI		R16, 1
-0005d1 2e60                      	MOV		DAY_UNITS, R16
-0005d2 2477                      	CLR		DAY_TENS
-0005d3 c000                          RJMP	AUMENTAR_MES
+0005df e001                          LDI		R16, 1
+0005e0 2e60                      	MOV		DAY_UNITS, R16
+0005e1 2477                      	CLR		DAY_TENS
+0005e2 c000                          RJMP	AUMENTAR_MES
                                  
                                  
                                  // AUMENTAR MES
                                  AUMENTAR_MES:
                                  	// Aumentar contador de meses
-0005d4 9533                      	INC		MONTH_COUNT
-0005d5 303c                      	CPI		MONTH_COUNT, 12
-0005d6 f030                      	BRLO	NO_DICIEMBRE
+0005e3 9533                      	INC		MONTH_COUNT
+0005e4 303c                      	CPI		MONTH_COUNT, 12
+0005e5 f030                      	BRLO	NO_DICIEMBRE
                                  
                                  	// Si las unidades de meses excenden 12, reiniciar ambos contadores
-0005d7 303c                      	CPI		MONTH_COUNT, 12
-0005d8 f070                      	BRLO	END_T1_ISR
-0005d9 e001                      	LDI		R16, 1
-0005da 2e80                      	MOV		MONTH_UNITS, R16
-0005db 2499                      	CLR		MONTH_TENS
-0005dc c00a                      	RJMP	END_T1_ISR
+0005e6 303c                      	CPI		MONTH_COUNT, 12
+0005e7 f070                      	BRLO	END_T1_ISR
+0005e8 e001                      	LDI		R16, 1
+0005e9 2e80                      	MOV		MONTH_UNITS, R16
+0005ea 2499                      	CLR		MONTH_TENS
+0005eb c00a                      	RJMP	END_T1_ISR
                                  
                                  // Meses que NO son diciembre
                                  NO_DICIEMBRE:
                                  	// Incrementar contador de unidades
-0005dd 2d08                      	MOV		R16, MONTH_UNITS
-0005de 9503                      	INC		R16
-0005df 2e80                      	MOV		MONTH_UNITS, R16
-0005e0 300a                      	CPI		R16, 10
-0005e1 f028                      	BRLO	END_T1_ISR
+0005ec 2d08                      	MOV		R16, MONTH_UNITS
+0005ed 9503                      	INC		R16
+0005ee 2e80                      	MOV		MONTH_UNITS, R16
+0005ef 300a                      	CPI		R16, 10
+0005f0 f028                      	BRLO	END_T1_ISR
                                  
                                  	// Incrementar contador de decenas
-0005e2 2488                      	CLR		MONTH_UNITS
-0005e3 2d09                      	MOV		R16, MONTH_TENS
-0005e4 9503                      	INC		R16
-0005e5 2e90                      	MOV		MONTH_TENS, R16
+0005f1 2488                      	CLR		MONTH_UNITS
+0005f2 2d09                      	MOV		R16, MONTH_TENS
+0005f3 9503                      	INC		R16
+0005f4 2e90                      	MOV		MONTH_TENS, R16
                                  
                                  	// No hacer nada
-0005e6 f000                      	BRLO	END_T1_ISR
+0005f5 f000                      	BRLO	END_T1_ISR
                                  
                                  
                                  // Terminar Rutina de Interrupción
                                  END_T1_ISR:
-0005e7 910f                      	POP		R16
-0005e8 bf0f                      	OUT		SREG, R16
-0005e9 910f                      	POP		R16
-0005ea 9518                      	RETI
+0005f6 910f                      	POP		R16
+0005f7 bf0f                      	OUT		SREG, R16
+0005f8 910f                      	POP		R16
+0005f9 9518                      	RETI
                                  
                                  
                                  // --------------------------------------------------------------------
                                  // | RUTINAS DE INTERRUPCIÓN CON TIMER2								  |
                                  // --------------------------------------------------------------------
                                  TIMER2_ISR:
-0005eb 930f                      	PUSH	R16
-0005ec b70f                      	IN		R16, SREG
-0005ed 930f                      	PUSH	R16
+0005fa 930f                      	PUSH	R16
+0005fb b70f                      	IN		R16, SREG
+0005fc 930f                      	PUSH	R16
                                  
                                  	// Reiniciar el TIMER2
-0005ee 940e 0559                 	CALL	RESET_TIMER2
+0005fd 940e 0568                 	CALL	RESET_TIMER2
                                  
                                  	// Incrementar el contador auxiliar hasta 6
-0005f0 9543                      	INC		T2_AUX_COUNT
-0005f1 3046                      	CPI		T2_AUX_COUNT, 6
-0005f2 f028                      	BRLO	END_T2_ISR
+0005ff 9543                      	INC		T2_AUX_COUNT
+000600 3046                      	CPI		T2_AUX_COUNT, 6
+000601 f028                      	BRLO	END_T2_ISR
                                  
                                  	// Si el contador rebasa 6, reiniciar y alternar el bit PD7
-0005f3 2744                      	CLR		T2_AUX_COUNT		; Guardar el reinicio del contador
+000602 2744                      	CLR		T2_AUX_COUNT		; Guardar el reinicio del contador
                                  
-0005f4 b10b                      	IN		R16, PORTD			; Leer estado actual de PORTD
-0005f5 e810                      	LDI		R17, (1 << PD7)
-0005f6 2701                          EOR		R16, R17			; Alternar bit PD7 (D7)
-0005f7 b90b                          OUT		PORTD, R16			; Escribir nuevo estado
+000603 b10b                      	IN		R16, PORTD			; Leer estado actual de PORTD
+000604 e810                      	LDI		R17, (1 << PD7)
+000605 2701                          EOR		R16, R17			; Alternar bit PD7 (D7)
+000606 b90b                          OUT		PORTD, R16			; Escribir nuevo estado
                                  	
                                  
                                  // Terminar Rutina de Interrupción
                                  END_T2_ISR:
-0005f8 910f                      	POP		R16
-0005f9 bf0f                      	OUT		SREG, R16
-0005fa 910f                      	POP		R16
-0005fb 9518                      	RETI
+000607 910f                      	POP		R16
+000608 bf0f                      	OUT		SREG, R16
+000609 910f                      	POP		R16
+00060a 9518                      	RETI
 
 
 RESOURCE USE INFORMATION
@@ -1525,39 +1543,39 @@ counted separately from r26..r31 here.
 .dseg memory usage only counts static data declared with .byte
 
 "ATmega328P" register use summary:
-x  :   0 y  :   0 z  :   1 r0 :   2 r1 :   0 r2 :   4 r3 :   4 r4 :   7 
+x  :   0 y  :   0 z  :   2 r0 :   2 r1 :   0 r2 :   4 r3 :   4 r4 :   6 
 r5 :   4 r6 :   8 r7 :   6 r8 :   5 r9 :   4 r10:   0 r11:   0 r12:   0 
-r13:   0 r14:   0 r15:   0 r16: 128 r17:   2 r18:   5 r19:  10 r20:   4 
-r21:   2 r22:   9 r23:   0 r24:   0 r25:   0 r26:   0 r27:   0 r28:   0 
-r29:   0 r30:   1 r31:   1 
+r13:   0 r14:   0 r15:   0 r16: 137 r17:   4 r18:   5 r19:  10 r20:   4 
+r21:   7 r22:   9 r23:   0 r24:   0 r25:   0 r26:   0 r27:   0 r28:   0 
+r29:   0 r30:   3 r31:   2 
 Registers used: 19 out of 35 (54.3%)
 
 "ATmega328P" instruction use summary:
-.lds  :   0 .sts  :   0 adc   :   0 add   :   4 adiw  :   0 and   :   0 
-andi  :   1 asr   :   0 bclr  :   0 bld   :   0 brbc  :   0 brbs  :   0 
+.lds  :   0 .sts  :   0 adc   :   0 add   :   5 adiw  :   0 and   :   0 
+andi  :   1 asr   :   0 bclr  :   0 bld   :   1 brbc  :   0 brbs  :   0 
 brcc  :   0 brcs  :   0 break :   0 breq  :   9 brge  :   0 brhc  :   0 
 brhs  :   0 brid  :   0 brie  :   0 brlo  :  16 brlt  :   0 brmi  :   0 
 brne  :   1 brpl  :   0 brsh  :   0 brtc  :   0 brts  :   0 brvc  :   0 
-brvs  :   0 bset  :   0 bst   :   0 call  :   6 cbi   :   1 cbr   :   0 
+brvs  :   0 bset  :   0 bst   :   1 call  :   7 cbi   :   1 cbr   :   0 
 clc   :   0 clh   :   0 cli   :   0 cln   :   0 clr   :  13 cls   :   0 
 clt   :   0 clv   :   0 clz   :   0 com   :   0 cp    :   0 cpc   :   0 
 cpi   :  25 cpse  :   0 dec   :   0 eor   :   1 fmul  :   0 fmuls :   0 
-fmulsu:   0 icall :   0 ijmp  :   0 in    :   5 inc   :  10 jmp   :   1 
-ld    :   0 ldd   :   0 ldi   :  33 lds   :   0 lpm   :   2 lsl   :   0 
-lsr   :   0 mov   :  27 movw  :   0 mul   :   2 muls  :   0 mulsu :   0 
+fmulsu:   0 icall :   0 ijmp  :   0 in    :   6 inc   :  10 jmp   :   1 
+ld    :   0 ldd   :   0 ldi   :  39 lds   :   0 lpm   :   4 lsl   :   0 
+lsr   :   0 mov   :  30 movw  :   0 mul   :   2 muls  :   0 mulsu :   0 
 neg   :   0 nop   :   0 or    :   0 ori   :   0 out   :  21 pop   :   8 
-push  :   8 rcall :   0 ret   :   8 reti  :   4 rjmp  :  13 rol   :   1 
-ror   :   0 sbc   :   0 sbci  :   0 sbi   :   1 sbic  :   0 sbis  :   0 
+push  :   8 rcall :   0 ret   :   4 reti  :   4 rjmp  :  17 rol   :   1 
+ror   :   0 sbc   :   0 sbci  :   0 sbi   :   0 sbic  :   0 sbis  :   0 
 sbiw  :   0 sbr   :   0 sbrc  :   0 sbrs  :   0 sec   :   0 seh   :   0 
 sei   :   1 sen   :   0 ser   :   0 ses   :   0 set   :   0 sev   :   0 
 sez   :   0 sleep :   0 spm   :   0 st    :   0 std   :   0 sts   :  12 
 sub   :   0 subi  :   0 swap  :   0 tst   :   0 wdr   :   0 
-Instructions used: 27 out of 113 (23.9%)
+Instructions used: 28 out of 113 (24.8%)
 
 "ATmega328P" memory use summary [bytes]:
 Segment   Begin    End      Code   Data   Used    Size   Use%
 ---------------------------------------------------------------
-[.cseg] 0x000000 0x000bf8    504     10    514   32768   1.6%
+[.cseg] 0x000000 0x000c16    534     10    544   32768   1.7%
 [.dseg] 0x000100 0x000100      0      0      0    2048   0.0%
 [.eseg] 0x000000 0x000000      0      0      0    1024   0.0%
 

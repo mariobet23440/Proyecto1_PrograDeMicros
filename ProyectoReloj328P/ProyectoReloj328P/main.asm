@@ -43,7 +43,7 @@
 .equ	PRESCALER1 = (1<<CS11) | (1<<CS10)				; Prescaler de TIMER1 (1024)
 .equ	TIMER_START1 = 65438							; Valor inicial de TIMER1 (60s)
 ; Para hacer pruebas usar 65438
-; Para medición de tiempo real usar
+; Para medición de tiempo real usar 6942
 
 // Constantes para Timer2
 .equ	PRESCALER2 = (1<<CS22) | (1<<CS21) | (1<<CS20)	; Prescaler de TIMER2 (1024)
@@ -86,7 +86,7 @@
 // Definir la tabla en la memoria FLASH (Números del 1 al 10 en display de 7 segmentos)
 .org	0x500
 TABLA:
-	.db 0x7E, 0x30, 0x6D, 0x79, 0x33, 0xB6, 0xBE, 0x70, 0x7F, 0x7B 
+	.db 0b1110111, 0b1000100, 0b1101011, 0b1101101, 0b1011100, 0b0111101, 0b0111111, 0b1100100, 0b1111111, 0b1111100 
 
 
 // --------------------------------------------------------------------
@@ -159,13 +159,7 @@ START:
 // --------------------------------------------------------------------
 
 MAINLOOP:
-	; Suponiendo que MINUTE_UNITS contiene un valor entre 0 y 9
-	SBI		PORTC, PC0
-
-	MOV R16, HOUR_UNITS   ; Copiar el valor de MINUTE_UNITS en R16
-
-	; Mostrar el valor en PORTD
-	OUT		PORTD, R16          ; Mostrar el valor en PORTD, que es el valor de los segmentos para el núme
+	CALL	UPDATE_DISPLAYS
 	RJMP	MAINLOOP
 
 
@@ -186,22 +180,46 @@ UPDATE_DISPLAYS:
 
 // - MODIFICAR DISPLAYS -
 DISPLAY4:
-	OUT		PORTD, HOUR_TENS
-	RET
+	LDI		R16, 0X01
+	OUT		PORTC, R16
+	MOV		OUT_PORTD, HOUR_TENS
+	RJMP	SHOW_NUMBER
 
 DISPLAY3:
-	OUT		PORTD, HOUR_UNITS
-	RET
+	LDI		R16, 0X02
+	OUT		PORTC, R16
+	MOV		OUT_PORTD, HOUR_UNITS
+	RJMP	SHOW_NUMBER
 
 DISPLAY2:
-	OUT		PORTD, MINUTE_TENS
-	RET
+	LDI		R16, 0X04
+	OUT		PORTC, R16
+	MOV		OUT_PORTD, MINUTE_TENS
+	RJMP	SHOW_NUMBER
 
 DISPLAY1:
-	OUT		PORTD, MINUTE_UNITS
-	RET
+	LDI		R16, 0X08
+	OUT		PORTC, R16
+	MOV		OUT_PORTD, MINUTE_UNITS
+	RJMP	SHOW_NUMBER
 
-END:
+// Sacar el número correspondiente en PORTD
+SHOW_NUMBER:
+	// Guardar bit en displays
+	IN		R17, PORTD
+	BST		R17, 7
+	
+	// Sacar dato de tabla
+	LDI		ZH, HIGH(TABLA<<1)
+	LDI		ZL, LOW(TABLA<<1)
+	ADD		ZL, OUT_PORTD
+	LPM		R16, Z
+	
+	// Cargar bit de leds intermitentes
+	BLD		R16, 7
+
+	// Mostrar en PORTD
+	OUT		PORTD, R16
 	RET
 
 // - REINICIAR TIMER0 -
