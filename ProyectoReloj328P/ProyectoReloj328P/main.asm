@@ -66,6 +66,8 @@
 .def	DAY_TENS = R7									; Decenas de días
 .def	MONTH_UNITS = R8 								; Unidades de meses
 .def	MONTH_TENS = R9									; Decenas de meses
+.def	MINUTE_COUNT = R10
+.def	HOUR_COUNT, R11
 
 // R16, R17 se utilizan como registros de uso común
 
@@ -272,6 +274,83 @@ PCINT_ISR:
 	IN		R16, SREG
 	PUSH	R16
 
+	// Decrementar contador con botones
+	SBIC	PINC, PC0
+	JMP		DECREMENTAR_PC
+
+	// Incrementar contador con botones
+	SBIC	PINC, PC1
+	JMP		INCREMENTAR_PC
+
+	// Cambiar Estados
+	SBIC	PINC, PC2
+	JMP		CAMBIAR_ESTADOS
+	
+	// Si no se detecta nada, ir al final
+	JMP		END_PC_ISR
+	
+
+CAMBIAR_ESTADOS:
+	// Cambiar Minutos -> Cambiar Horas
+	CPI		STATE, 1
+	SBIC	SREG, SREG_Z
+	LDI		STATE, 2
+
+	// Cambiar Horas -> Cambiar Dias
+	CPI		STATE, 2
+	SBIC	SREG, SREG_Z
+	LDI		STATE, 3
+
+	// Cambiar Dias -> Cambiar Meses
+	CPI		STATE, 3
+	SBIC	SREG, SREG_Z
+	LDI		STATE, 4
+
+	// Cambiar Meses -> Alarma
+	CPI		STATE, 4
+	SBIC	SREG, SREG_Z
+	LDI		STATE, 5
+
+	// Alarma -> Cambiar Minutos
+	CPI		STATE, 5
+	SBIC	SREG, SREG_Z
+	LDI		STATE, 1
+	
+	// Saltar al final
+	RJMP	END_PC_ISR
+
+DECRMENTAR_PC:
+	// Cambiar Minutos -> Cambiar Horas
+	CPI		STATE, 1
+	SBIC	SREG, SREG_Z
+	LDI		STATE, 2
+	SBIC	SREG, SREG_Z
+	LDI		STATE, 2
+
+	// Cambiar Horas -> Cambiar Dias
+	CPI		STATE, 2
+	SBIC	SREG, SREG_Z
+	LDI		STATE, 3
+
+	// Cambiar Dias -> Cambiar Meses
+	CPI		STATE, 3
+	SBIC	SREG, SREG_Z
+	LDI		STATE, 4
+
+	// Cambiar Meses -> Alarma
+	CPI		STATE, 4
+	SBIC	SREG, SREG_Z
+	LDI		STATE, 5
+
+	// Alarma -> Cambiar Minutos
+	CPI		STATE, 5
+	SBIC	SREG, SREG_Z
+	LDI		STATE, 1
+	
+	// Saltar al final
+	RJMP	END_PC_ISR
+
+END_PC_ISR:
 	POP		R16
 	OUT		SREG, R16
 	POP		R16
