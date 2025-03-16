@@ -37,7 +37,7 @@
 
 // Constantes para Timer0
 .equ	PRESCALER0 = (1<<CS01) | (1<<CS00)				; Prescaler de TIMER0 (1024)
-.equ	TIMER_START0 = 251								; Valor inicial del Timer0 (10 ms)
+.equ	TIMER_START0 = 236								; Valor inicial del Timer0 (1.25 ms)
 
 // Constantes para Timer1
 .equ	PRESCALER1 = (1<<CS11) | (1<<CS10)				; Prescaler de TIMER1 (1024)
@@ -181,7 +181,6 @@ START:
 MAINLOOP:
 	// Realizar multiplexado de señales a transistores
 	CALL	MULTIPLEXADO
-	OUT		PORTC, R16
 	CALL	MODE_OUTPUT
 	CALL	LOOKUP_TABLE
 
@@ -194,6 +193,9 @@ MAINLOOP:
 // --------------------------------------------------------------------
 // - ACTUALIZAR DISPLAYS -
 MULTIPLEXADO:
+	IN		R16, PORTC
+	ANDI	R16, 0X30			; Apagar todo menos los últimos 2 bits
+	OUT		PORTC, R16
 	CPI		MUX_SIGNAL, 0X01
 	BREQ	MUX_DISPLAY4
 	CPI		MUX_SIGNAL, 0X02
@@ -203,21 +205,22 @@ MULTIPLEXADO:
 	CPI		MUX_SIGNAL, 0X08
 	BREQ	MUX_DISPLAY1
 
+
 // ENCENDER DISPLAYS
 MUX_DISPLAY4:
-	LDI		R16, 0X01
+	SBI		PORTC, PC0
 	RET
 
 MUX_DISPLAY3:
-	LDI		R16, 0X02
+	SBI		PORTC, PC1
 	RET
 
 MUX_DISPLAY2:
-	LDI		R16, 0X04
+	SBI		PORTC, PC2
 	RET
 
 MUX_DISPLAY1:
-	LDI		R16, 0X08
+	SBI		PORTC, PC3
 	RET
 
 // --------------------------------------------------------------------
@@ -236,25 +239,25 @@ MODE_OUTPUT:
 
 // Salida a displays 4 y 3
 MODE_DISPLAY43:
-	SBRC	STATE, 0
-	MOV		OUT_PORTD, HOUR_COUNT
-	SBRC	STATE, 1
+	SBRC	STATE, 3
 	MOV		OUT_PORTD, HOUR_COUNT
 	SBRC	STATE, 2
+	MOV		OUT_PORTD, HOUR_COUNT
+	SBRC	STATE, 1
 	MOV		OUT_PORTD, MONTH_COUNT
-	SBRC	STATE, 3
+	SBRC	STATE, 0
 	MOV		OUT_PORTD, MONTH_COUNT
 	RET
 
 // Salida a displays 2 y 1
 MODE_DISPLAY21:
-	SBRC	STATE, 1
+	SBRC	STATE, 3
 	MOV		OUT_PORTD, MINUTE_COUNT
 	SBRC	STATE, 2
 	MOV		OUT_PORTD, MINUTE_COUNT
-	SBRC	STATE, 3
+	SBRC	STATE, 1
 	MOV		OUT_PORTD, DAY_COUNT
-	SBRC	STATE, 4
+	SBRC	STATE, 0
 	MOV		OUT_PORTD, DAY_COUNT
 	RET
 
@@ -353,16 +356,7 @@ PCINT_ISR:
 	IN		R16, SREG
 	PUSH	R16
 
-	// Decrementar contador con botones
-	SBIC	PINB, PB0
-	JMP		DECREMENTAR_PC
-
-	// Incrementar contador con botones
-	SBIC	PINB, PB1
-	JMP		INCREMENTAR_PC
-
 	// Cambiar Estados
-	SBIC	PINB, PB2
 	JMP		CAMBIAR_ESTADOS
 	
 	// Si no se detecta nada, ir al final
@@ -398,8 +392,36 @@ CAMBIAR_ESTADOS:
 	SBRC	R16, SREG_Z
 	LDI		STATE, MINUTE_CHANGE
 	
-	// Saltar al final
-	RJMP	END_PC_ISR
+	// Encender LEDs indicadores de modo
+	RJMP	ENCENDER_LEDS_MODO
+
+ENCENDER_LEDS_MODO:
+	// Apagar ambos LEDS
+	CBI		PORTC, PC3
+	CBI		PORTC, PC4
+	
+	// Cambiar Minutos
+	CPI		STATE, MINUTE_CHANGE
+	SBRC	R16, SREG_Z
+	SBI		PORTC, PC3
+
+	// Cambiar Horas
+	CPI		STATE, HOUR_CHANGE
+	SBRC	R16, SREG_Z
+	SBI		PORTC, PC3
+
+	// Cambiar Dias
+	CPI		STATE, DAY_CHANGE
+	SBRC	R16, SREG_Z
+	SBI		PORTC, PC4
+
+	// Cambiar Meses
+	CPI		STATE, MONTH_CHANGE
+	SBRC	R16, SREG_Z
+	SBI		PORTC, PC4
+
+	// Salir
+	JMP		END_PC_ISR
 
 DECREMENTAR_PC:
 	JMP		END_PC_ISR
@@ -507,7 +529,7 @@ COMPARACIONES_MES:
 
 FEBRERO:
 	// Verificar si el contador de días pasa de 28
-	CPI		DAY_COUNT, 28
+	CPI		DAY_COUNT, 29
     BRLO	END_T1_ISR
 
 	// Si han pasado más de 28 días, reiniciar contador de días
@@ -516,7 +538,7 @@ FEBRERO:
 
 MESES_30:
 	// Verificar si el contador de días pasa de 30
-	CPI		DAY_COUNT, 30
+	CPI		DAY_COUNT, 31
     BRLO	END_T1_ISR
 
 	// Si han pasado más de 30 días, reiniciar contador de días
@@ -525,7 +547,7 @@ MESES_30:
 
 MESES_31:
 	// Verificar si el contador pasa de 31
-	CPI		DAY_COUNT, 31
+	CPI		DAY_COUNT, 32
     BRLO	END_T1_ISR
 
 	// Si han pasado más de 31 días, reiniciar contadores de días
@@ -538,18 +560,12 @@ AUMENTAR_MES:
 	// Aumentar contador de meses
 	INC		MONTH_COUNT
 	CPI		MONTH_COUNT, 12
-	BRLO	NO_DICIEMBRE
+	BRLO	END_T1_ISR
 
 	// Si las unidades de meses excenden 12, reiniciar ambos contadores
 	CPI		MONTH_COUNT, 12
 	LDI		MONTH_COUNT, 1
 	RJMP	END_T1_ISR
-
-// Meses que NO son diciembre
-NO_DICIEMBRE:
-	INC		MONTH_COUNT
-	BRLO	END_T1_ISR
-
 
 // Terminar Rutina de Interrupción
 END_T1_ISR:
