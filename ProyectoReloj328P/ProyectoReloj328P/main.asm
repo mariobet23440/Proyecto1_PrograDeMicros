@@ -49,12 +49,29 @@
 .equ	PRESCALER2 = (1<<CS22) | (1<<CS21) | (1<<CS20)	; Prescaler de TIMER2 (1024)
 .equ	TIMER_START2 = 158								; Valor inicial de TIMER2 (100 ms)
 
-// Máquina de estados finitos
-.equ	MINUTE_CHANGE =	0X01							; Estado CambiarMinutos
-.equ	HOUR_CHANGE = 0X02 								; Estado CambiarHoras
-.equ	DAY_CHANGE = 0X04								; Estado CambiarDias
-.equ	MONTH_CHANGE = 0X08								; Estado CambiarMeses
-.equ	ALARM_STATE	= 0X10								; Modo Alarma
+// Estados de Máquina de estados finitos
+.equ	S0 = 0X00					; MostrarHora
+.equ	S1 = 0X01					; CambiarMinutos
+.equ	S2 = 0X02					; CambiarHora
+.equ	S3 = 0X04					; MostrarFecha
+.equ	S4 = 0X08					; CambiarDias
+.equ	S5 = 0X10					; CambiarMeses
+.equ	S6 = 0X20					; ModoAlarma
+.equ	S7 = 0X40					; AlarmaMinutos
+.equ	S8 = 0X80					; AlarmaHoras
+; Observe que el registro que almacena el estado es ONE-HOT
+
+// Bits para comparar con máquina de estados
+.equ	S1B = 0
+.equ	S2B = 1
+.equ	S3B = 2
+.equ	S4B = 3
+.equ	S5B = 4
+.equ	S6B = 5
+.equ	S7B = 6
+.equ	S8B = 7
+
+; Nótese que S0 = 0x00 y todos los bits están apagados, sus comparaciones son diferentes
 
 // Constantes de Lookup Table
 .equ	T0 = 0b1110111
@@ -84,6 +101,7 @@
 .def	OUT_PORTD = R22									; Salida de PORTD
 .def	MUX_SIGNAL = R23								; Salida de PORTC (Multiplexado de señal)
 .def	STATE = R24										; Registro de Estado
+.def	NEXT_STATE = R25								; Registro de estado siguiente
 
 // No podemos usar registros más allá del 24 porque son los punteros X, Y y Z
 
@@ -124,11 +142,11 @@ START:
 	
 	// - CONFIGURACIÓN DE PINES -
 	// Configurar los pines PB1-PB4 de PORTB como entradas (Habilitar pull-ups)
-	LDI		R16, (1 << PB0) | (1 << PB1)  | (1 << PB2) | (1 << PB3) | (1 << PB4)
+	LDI		R16, (1 << PB0) | (1 << PB1)  | (1 << PB2) | (1 << PB3)
 	OUT		PORTB, R16
 
-	// Configurar el pin PB5 como una salida
-	LDI		R16, (1 << PB5)
+	// Configurar los pines PB4 y PB5 como una salida
+	LDI		R16, (1 << PB4) | (1 << PB5)
 	OUT		DDRB, R16
 	CBI		PORTB, PB5
 
@@ -356,79 +374,183 @@ PCINT_ISR:
 	IN		R16, SREG
 	PUSH	R16
 
-	// Cambiar Estados
-	JMP		CAMBIAR_ESTADOS
+	// Cambiar Estados con PB0
+	SBIS	PINB, PB0
+	JMP		NEXT_STATE_LOGIC_PB0
+
+	// Cambiar Estados con PB1
+	SBIS	PINB, PB1
+	JMP		NEXT_STATE_LOGIC_PB1
 	
 	// Si no se detecta nada, ir al final
 	JMP		END_PC_ISR
 	
+// Lógica de Siguiente estado si se presiona PB0
+NEXT_STATE_LOGIC_PB0:
+	// CambiarMinutos (S1) -> MostrarHora (S0)
+	SBRC	STATE, S1B
+	LDI		NEXT_STATE, S0
 
-CAMBIAR_ESTADOS:
-	// Cambiar Minutos -> Cambiar Horas
-	SBRC	STATE, 0
-	LDI		STATE, 0X02
+	// CambiarHoras (S2) -> MostrarHora (S0)
+	SBRC	STATE, S2B
+	LDI		NEXT_STATE, S0
 
-	// Cambiar Horas -> Cambiar Dias
-	SBRC	STATE,1
-	LDI		STATE, 0X04
+	// MostrarFecha (S3) -> ModoAlarma (S6)
+	SBRC	STATE, S3B
+	LDI		NEXT_STATE, S6
 
-	// Cambiar Dias -> Cambiar Meses
-	SBRC	STATE, 2
-	LDI		STATE, 0X08
+	// CambiarDías (S4) -> MostrarFecha (S3)
+	SBRC	STATE, S4B
+	LDI		NEXT_STATE, S3
 
-	// Cambiar Meses -> Alarma
-	SBRC	STATE, 3
-	LDI		STATE, 0X10
+	// CambiarMeses (S5) -> MostrarFecha (S3)
+	SBRC	STATE, S5B
+	LDI		NEXT_STATE, S3
 
-	// Alarma -> Cambiar Minutos
-	CPI		STATE, 4
-	LDI		STATE, 0X01
+	// MostrarFecha (S3) -> ModoAlarma (S6)
+	SBRC	STATE, S3B
+	LDI		NEXT_STATE, S6
+
+	// ModoAlarma (S6) -> MostrarHora (S0)
+	SBRC	STATE, S6B
+	LDI		NEXT_STATE, S0
+
+	// AlarmaMinutos (S7) -> ModoAlarma (S6)
+	SBRC	STATE, S7B
+	LDI		NEXT_STATE, S6
+
+	// AlarmaHoras (S8) -> ModoAlarma (S6)
+	SBRC	STATE, S8B
+	LDI		NEXT_STATE, S6
+
+	// MostrarHoras (S0) -> MostrarFecha (S3)
+	CPI		STATE, 0
+	BRNE	INTERMEDIATE_JUMP_PCINT_ISR
+	LDI		NEXT_STATE, S3
+	JMP		COPY_NEXT_STATE
+
+// Salto intermedio por limitaciones de BRNE
+INTERMEDIATE_JUMP_PCINT_ISR:
+	JMP		COPY_NEXT_STATE
 	
-	// Encender LEDs indicadores de modo
-	RJMP	ENCENDER_LEDS_MODO
+
+// Lógica de Siguiente estado si se presiona PB1
+NEXT_STATE_LOGIC_PB1:
+	// CambiarMinutos (S1) -> CambiarHoras (S2)
+	SBRC	STATE, S1B
+	LDI		NEXT_STATE, S2
+
+	// CambiarHoras (S2) -> MostrarHora (S0)
+	SBRC	STATE, S2B
+	LDI		NEXT_STATE, S0
+
+	// MostrarFecha (S3) -> CambiarDias (S4)
+	SBRC	STATE, S3B
+	LDI		NEXT_STATE, S4
+
+	// CambiarDías (S4) -> CambiarMeses (S5)
+	SBRC	STATE, S4B
+	LDI		NEXT_STATE, S5
+
+	// CambiarMeses (S5) -> MostrarFecha (S3)
+	SBRC	STATE, S5B
+	LDI		NEXT_STATE, S3
+
+	// ModoAlarma (S6) -> AlarmaMinutos (S7)
+	SBRC	STATE, S6B
+	LDI		NEXT_STATE, S7
+
+	// AlarmaMinutos (S7) -> AlarmaHoras (S8)
+	SBRC	STATE, S7B
+	LDI		NEXT_STATE, S8
+
+	// AlarmaHoras (S8) -> ModoAlarma (S6)
+	SBRC	STATE, S8B
+	LDI		NEXT_STATE, S6
+
+	// MostrarHoras (S0) -> CambiarMinutos (S2)
+	CPI		STATE, S0
+	BRNE	COPY_NEXT_STATE
+	LDI		NEXT_STATE, S1
+	JMP		COPY_NEXT_STATE
+
+// Copiar NEXT_STATE en STATE
+COPY_NEXT_STATE:
+	MOV		STATE, NEXT_STATE
+	JMP		ENCENDER_LEDS_MODO
 
 ENCENDER_LEDS_MODO:
-	// Ingresar el SREG a R16
-	IN		R16, SREG
+	// MostrarHoras (S0)
+	CPI		STATE, S0
+	BREQ	ENCENDER_LED_HORA
 
-	// Apagar ambos LEDS
+	// CambiarMinutos (S1)
+	CPI		STATE, S1
+	BREQ	PRUEBA_ALARMA			; ENCENDER_LED_HORA
+
+	// CambiarHoras (S2)
+	CPI		STATE, S2
+	BREQ	PRUEBA_ALARMA			; ENCENDER_LED_HORA
+
+	// MostrarFecha (S3)
+	CPI		STATE, S3
+	BREQ	ENCENDER_LED_FECHA
+
+	// CambiarDias (S4)
+	CPI		STATE, S4
+	BREQ	PRUEBA_ALARMA			; ENCENDER_LED_FECHA
+
+	// CambiarMeses (S5)
+	CPI		STATE, S5
+	BREQ	PRUEBA_ALARMA			; ENCENDER_LED_FECHA
+
+	// Modo Alarma (S6)
+	CPI		STATE, S6
+	BREQ	ENCENDER_LED_ALARMA
+
+	// AlarmaMinutos (S7)
+	CPI		STATE, S7
+	BREQ	PRUEBA_ALARMA			; ENCENDER_LED_ALARMA
+
+	// AlarmaHoras (S8)
+	CPI		STATE, S8
+	BREQ	PRUEBA_ALARMA			; ENCENDER_LED_ALARMA
+
+	// Salir (Si es que algo falla, por alguna razón)
+	JMP		END_PC_ISR
+
+// Encender LEDs Indicadores de Modo
+ENCENDER_LED_HORA:
+	SBI		PORTC, PC4
+	CBI		PORTC, PC5
+	CBI		PORTB, PB4
+	CBI		PORTB, PB5		; Quitar esta línea en el programa final
+	JMP		END_PC_ISR
+
+ENCENDER_LED_FECHA:
+	CBI		PORTC, PC4
+	SBI		PORTC, PC5
+	CBI		PORTB, PB4
+	CBI		PORTB, PB5		; Quitar esta línea en el programa final
+	JMP		END_PC_ISR
+
+ENCENDER_LED_ALARMA:
 	CBI		PORTC, PC4
 	CBI		PORTC, PC5
-	
-	// Cambiar Minutos
-	CPI		STATE, MINUTE_CHANGE
-	SBRC	R16, SREG_Z
-	SBI		PORTC, PC4
-
-	// Cambiar Horas
-	CPI		STATE, HOUR_CHANGE
-	SBRC	R16, SREG_Z
-	SBI		PORTC, PC4
-
-	// Cambiar Dias
-	CPI		STATE, DAY_CHANGE
-	SBRC	R16, SREG_Z
-	SBI		PORTC, PC5
-
-	// Cambiar Meses
-	CPI		STATE, MONTH_CHANGE
-	SBRC	R16, SREG_Z
-	SBI		PORTC, PC5
-
-	// Salir
+	SBI		PORTB, PB4
+	CBI		PORTB, PB5		; Quitar esta línea en el programa final
 	JMP		END_PC_ISR
 
-DECREMENTAR_PC:
-	JMP		END_PC_ISR
-
-INCREMENTAR_PC:
-	JMP		END_PC_ISR
+// Quitar esto en el programa final
+PRUEBA_ALARMA:
+	SBI		PORTB, PB5
 
 END_PC_ISR:
 	POP		R16
 	OUT		SREG, R16
 	POP		R16
 	RETI
+
 
 // --------------------------------------------------------------------
 // | RUTINAS DE INTERRUPCIÓN CON TIMER0								  |
