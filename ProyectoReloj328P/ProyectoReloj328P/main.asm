@@ -145,7 +145,7 @@ START:
 	LDI		R16, (1 << PB0) | (1 << PB1)  | (1 << PB2) | (1 << PB3)
 	OUT		PORTB, R16
 
-	// Configurar los pines PB4 y PB5 como una salida
+	// Configurar los pines PB4 y PB5 como salidas
 	LDI		R16, (1 << PB4) | (1 << PB5)
 	OUT		DDRB, R16
 	CBI		PORTB, PB5
@@ -211,9 +211,6 @@ MAINLOOP:
 // --------------------------------------------------------------------
 // - ACTUALIZAR DISPLAYS -
 MULTIPLEXADO:
-	IN		R16, PORTC
-	ANDI	R16, 0X30			; Apagar todo menos los últimos 2 bits
-	OUT		PORTC, R16
 	CPI		MUX_SIGNAL, 0X01
 	BREQ	MUX_DISPLAY4
 	CPI		MUX_SIGNAL, 0X02
@@ -227,23 +224,36 @@ MULTIPLEXADO:
 // ENCENDER DISPLAYS
 MUX_DISPLAY4:
 	SBI		PORTC, PC0
+	CBI		PORTC, PC1
+	CBI		PORTC, PC2
+	CBI		PORTC, PC3
 	RET
 
 MUX_DISPLAY3:
+	CBI		PORTC, PC0
 	SBI		PORTC, PC1
+	CBI		PORTC, PC2
+	CBI		PORTC, PC3
 	RET
 
 MUX_DISPLAY2:
+	CBI		PORTC, PC0
+	CBI		PORTC, PC1
 	SBI		PORTC, PC2
+	CBI		PORTC, PC3
 	RET
 
 MUX_DISPLAY1:
+	CBI		PORTC, PC0
+	CBI		PORTC, PC1
+	CBI		PORTC, PC2
 	SBI		PORTC, PC3
 	RET
 
 // --------------------------------------------------------------------
 // | RUTINA NO DE INTERRUPCIÓN 2 - MODE_OUTPUT						  |
 // --------------------------------------------------------------------
+// CONFIGURACION DE MODOS (Escoger salidas)
 // CONFIGURACION DE MODOS (Escoger salidas)
 MODE_OUTPUT:
 	CPI		MUX_SIGNAL, 0X01
@@ -257,27 +267,94 @@ MODE_OUTPUT:
 
 // Salida a displays 4 y 3
 MODE_DISPLAY43:
-	SBRC	STATE, 0
-	MOV		OUT_PORTD, HOUR_COUNT
-	SBRC	STATE, 1
-	MOV		OUT_PORTD, HOUR_COUNT
-	SBRC	STATE, 2
-	MOV		OUT_PORTD, MONTH_COUNT
-	SBRC	STATE, 3
-	MOV		OUT_PORTD, MONTH_COUNT
+	// MostrarHoras (S0)
+	CPI		STATE, S0
+	BREQ	SHOW_HOURS
+
+	// CambiarMinutos (S1)
+	CPI		STATE, S1
+	BREQ	SHOW_HOURS
+
+	// CambiarHoras (S2)
+	CPI		STATE, S2
+	BREQ	SHOW_HOURS
+	
+	// MostrarFecha (S3)
+	CPI		STATE, S3
+	BREQ	SHOW_MONTH
+
+	// CambiarDia (S4)
+	CPI		STATE, S4
+	BREQ	SHOW_MONTH
+
+	// CambiarMes (S5)
+	CPI		STATE, S5
+	BREQ	SHOW_MONTH
+
+	// ModoAlarma (S6)
+	CPI		STATE, S6
+	BREQ	SHOW_HOURS
+
+	// AlarmaMinutos (S7)
+	CPI		STATE, S7
+	BREQ	SHOW_HOURS
+
+	// AlarmaHoras (S8)
+	CPI		STATE, S8
+	BREQ	SHOW_HOURS
 	RET
 
-// Salida a displays 2 y 1
+SHOW_HOURS:
+	MOV		OUT_PORTD, HOUR_COUNT
+
+SHOW_MONTH:
+	MOV		OUT_PORTD, MONTH_COUNT
+
+
+// Salida a displays 2 Y 1
 MODE_DISPLAY21:
-	SBRC	STATE, 0
-	MOV		OUT_PORTD, MINUTE_COUNT
-	SBRC	STATE, 1
-	MOV		OUT_PORTD, MINUTE_COUNT
-	SBRC	STATE, 2
-	MOV		OUT_PORTD, DAY_COUNT
-	SBRC	STATE, 3
-	MOV		OUT_PORTD, DAY_COUNT
+	// MostrarHoras (S0)
+	CPI		STATE, S0
+	BREQ	SHOW_MINUTES
+
+	// CambiarMinutos (S1)
+	CPI		STATE, S1
+	BREQ	SHOW_MINUTES
+
+	// CambiarHoras (S2)
+	CPI		STATE, S2
+	BREQ	SHOW_MINUTES
+	
+	// MostrarFecha (S3)
+	CPI		STATE, S3
+	BREQ	SHOW_DAY
+
+	// CambiarDia (S4)
+	CPI		STATE, S4
+	BREQ	SHOW_DAY
+
+	// CambiarMes (S5)
+	CPI		STATE, S5
+	BREQ	SHOW_DAY
+
+	// ModoAlarma (S6)
+	CPI		STATE, S6
+	BREQ	SHOW_MINUTES
+
+	// AlarmaMinutos (S7)
+	CPI		STATE, S7
+	BREQ	SHOW_MINUTES
+
+	// AlarmaHoras (S8)
+	CPI		STATE, S8
+	BREQ	SHOW_MINUTES
 	RET
+
+SHOW_MINUTES:
+	MOV		OUT_PORTD, MINUTE_COUNT
+
+SHOW_DAY:
+	MOV		OUT_PORTD, DAY_COUNT
 
 ; Si se debe mostrar la salida en DISPLAYS 3 y 4, mostrar horas y meses
 ; Si se debe mostrar la salida en DISPLAYS 2 y 1, mostrar minutos y días
