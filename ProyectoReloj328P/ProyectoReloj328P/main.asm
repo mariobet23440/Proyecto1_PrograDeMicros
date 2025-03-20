@@ -145,13 +145,13 @@ START:
 	// Configurar todos los pines de PORTC como salidas
 	LDI		R16, 0XFF
 	OUT		DDRC, R16
-	LDI		R16, 0X00
+	LDI		R16, 0XFF
 	OUT		PORTC, R16
 
 	// Configurar los pines de PORTD como salidas
 	LDI		R16, 0XFF
 	OUT		DDRD, R16
-	LDI		R16, 0XFF
+	LDI		R16, 0X00
 	OUT		PORTD, R16
 
 	// - CONFIGURACIÓN DEL RELOJ DE SISTEMA - (fclk = 1 MHz)
@@ -197,6 +197,7 @@ MAINLOOP:
 	// Realizar multiplexado de señales a transistores
 	CALL	MULTIPLEXADO
 	CALL	MODE_OUTPUT
+	CALL	LOOKUP_TABLE
 	RJMP	MAINLOOP
 
 // --------------------------------------------------------------------
@@ -298,10 +299,11 @@ MODE_DISPLAY43:
 
 SHOW_HOURS:
 	MOV		OUT_PORTD, HOUR_COUNT
-	// AQUÍ ESTABA EL HORROR (ERROR)
+	RET
 
 SHOW_MONTH:
 	MOV		OUT_PORTD, MONTH_COUNT
+	RET
 
 // Salida a displays 2 Y 1
 MODE_DISPLAY21:
@@ -344,9 +346,11 @@ MODE_DISPLAY21:
 
 SHOW_MINUTES:
 	MOV		OUT_PORTD, MINUTE_COUNT
+	RET
 
 SHOW_DAY:
 	MOV		OUT_PORTD, DAY_COUNT
+	RET
 
 
 // --------------------------------------------------------------------
