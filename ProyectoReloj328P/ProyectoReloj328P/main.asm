@@ -3,47 +3,8 @@ PROGRAMACIÓN DE MICROCONTROLADORES
 PROYECTO 1 - RELOJ DIGITAL
 DESCRIPCIÓN: Reloj que muestra fecha y hora con modo de configuración de alarma.
 FECHA DE ENTREGA: 21 de marzo de 2025
-*/
-
-/* 
-ENSAYO DE RECONSTRUCCIÓN
-Para probar el correcto funcionamiento de las distintas partes del código, integraremos el código original
-(La última versión) un módulo a la vez.
-
-VERSIÓN 1 - SÓLO MULTIPLEXADO
-- ¿Qué se esperaría?: Los cuatro displays deberían mostrar el mismo número.
-- ¿Funciona?: Si
-
-VERSIÓN 2 - MULTIPLEXADO + MÁQUINA DE ESTADOS
-- ¿Qué se esperaría? Los cuatro displays muestran un número cualquiera al mismo tiempo.
-  Si se presiona uno de los botones de cambio de modo los LEDs cambian. Sin MODE_OUTPUT
-- ¿Funciona? Sí. Las transiciones entre LEDs y la alarma de prueba funcionan bien
-
-VERSIÓN 3 - MOSTRAR SALIDAS SEGÚN MODO Y LOOKUP TABLE
-- Todavía no configuramos el incremento automático de unidades de tiempo (Con TIMER1). 
-  Introducimos los registros MINUTE_COUNT, HOUR_COUNT, DAY_COUNT, MONTH_COUNT. La idea es que
-  el programa muestre cada número en el display correspondiente.
-+ AQUÍ SE OBSERVARON PROBLEMAS. Los dos displays muestran el indicador de días.
-+ La lookup table parece funcionar correctamente (Muestra los números correctos).
-+ La máquina de estados funciona correctamente.
-+ El multiplexado funciona correctamente
--> Se procederá a revisar el selector de salidas según modo
-
-ERRORES DETECTADOS
-Hacía falta un RET en una llamada. Es de esperar que por eso los errores que tenía anteriormente fueran tan erráticos.
-Los errores fueron corregidos-
-
-+ Ahora los displays muestran el contador correspondiente y no hay interferencias con la máquina de estados.
-
-
-VERSIÓN 4 - INTEGRACIÓN DE RUTINAS DE TIMER1
-+ En esta versión se integra la ISR de TIMER1, para incrementar los valores de los contadores.
-+ Todo funciona correctamente. Todavía falta integrar incrementos y decrementos, así como el modo alarma.
-
-VERSIÓN 5 - INTEGRACIÓN DE RUTINAS DE TIMER2
-+ En esta versión se integra la ISR de TIMER2, para LEDs intermitentes. Hasta aquí llegué con el código original.
-Los LEDs intermitentes a veces parpadean brevemente y luego se apagan. Verificaremos si eso ocurre al incrementar
-el periodo entre desbordamientos del TIMER1.
+ÚLTIMA MODIFICACIÓN: 20/03/2025
+ÚLTIMOS PENDIENTES: Mejorar antirrebote (En Hardware)
 */
 
 // --------------------------------------------------------------------
@@ -81,14 +42,12 @@ el periodo entre desbordamientos del TIMER1.
 .equ	TIMER_START0 = 236								; Valor inicial del Timer0 (1.25 ms)
 
 // Constantes para Timer1
-.equ	PRESCALER1 = (1<<CS11) | (1<<CS10)				; Prescaler de TIMER1 (1024)
+.equ	PRESCALER1 = (1<<CS12) | (1<<CS10)				; Prescaler de TIMER1 (1024)
 .equ	TIMER_START1 = 6942								; Valor inicial de TIMER1 (60s)
-														; Para acelerar el tiempo usar 65438
-														; Para que cada minuto incremente en un segundo usar 6942
 
 // Constantes para Timer2
 .equ	PRESCALER2 = (1<<CS22) | (1<<CS21) | (1<<CS20)	; Prescaler de TIMER2 (1024)
-.equ	TIMER_START2 = 158								; Valor inicial de TIMER2 (100 ms)
+.equ	TIMER_START2 = 133								; Valor inicial de TIMER2 (125 ms)
 
 // Estados de Máquina de estados finitos
 .equ	S0 = 0X00					; MostrarHora
@@ -126,14 +85,24 @@ el periodo entre desbordamientos del TIMER1.
 .equ	T8 = 0b1111111
 .equ	T9 = 0b1111100 
 
-// Selector de bit para registro máscara CHANGE_COUNTER_MASK
-.equ	CCMB = 1
+// Selector de bit para registro máscara T2COSC
+// Este bit hace que los displays parpadeen cuando se va a cambiar un contador
+.equ	CCMB = 0
 
+// Bit Controlador de LEDs Intermitentes
+.equ	ILED_CB = 2
+/* 
+Para un periodo entre desbordamientos de TIMER2 de 125 ms
+BIT DE TCOSC2
+0 - Periodo 250 ms (Bajo durante 125 ms)
+1 - Periodo de 500 ms (Bajo durante 250 ms)
+2 - Periodo de 1000 ms (Bajo durante 500 ms)
+*/
 // R16 y R17 quedan como registros temporales
 
 // Registros inferiores (d < 16)
 .def	T2_AUX_COUNT = R2
-.def	CHANGE_COUNTER_MASK = R3						; Máscara para PORTD
+.def	T2COSC = R3										; Máscara para PORTD (*T*imer*2* *C*ustom *OSC*ilator)
 .def	ALARM_MINUTES = R4								; Registro de contador de minutos de alarma
 .def	ALARM_HOUR = R5									; Registro de contador de horas de alarma
 
@@ -229,7 +198,7 @@ START:
 	// - INICIALIZACIÓN DE REGISTROS -
 	CLR		ALARM_HOUR
 	CLR		ALARM_MINUTES
-	CLR		CHANGE_COUNTER_MASK
+	CLR		T2COSC
 	LDI		MUX_SIGNAL, 0X01
 	CLR		MINUTE_COUNT
 	CLR		HOUR_COUNT
@@ -353,9 +322,9 @@ SHOW_HOURS:
 
 // Modo CambiarHoras (S2)
 CHANGING_HOURS:
-	SBRC	CHANGE_COUNTER_MASK, CCMB
+	SBRC	T2COSC, CCMB
 	LDI		OUT_PORTD, 60
-	SBRS	CHANGE_COUNTER_MASK, CCMB
+	SBRS	T2COSC, CCMB
 	MOV		OUT_PORTD, HOUR_COUNT
 	RET
 
@@ -366,9 +335,9 @@ SHOW_MONTH:
 
 // Modo CambiarMes (S5)
 CHANGING_MONTHS:
-	SBRC	CHANGE_COUNTER_MASK, CCMB
+	SBRC	T2COSC, CCMB
 	LDI		OUT_PORTD, 60
-	SBRS	CHANGE_COUNTER_MASK, CCMB
+	SBRS	T2COSC, CCMB
 	MOV		OUT_PORTD, MONTH_COUNT
 	RET
 
@@ -379,9 +348,9 @@ SHOW_ALARM_HOURS:
 
 // Modo CambiarHoras (S2)
 CHANGE_ALARM_HOURS:
-	SBRC	CHANGE_COUNTER_MASK, CCMB
+	SBRC	T2COSC, CCMB
 	LDI		OUT_PORTD, 60
-	SBRS	CHANGE_COUNTER_MASK, CCMB
+	SBRS	T2COSC, CCMB
 	MOV		OUT_PORTD, ALARM_HOUR
 	RET
 
@@ -431,9 +400,9 @@ SHOW_MINUTES:
 
 // Modo CambiarMinutos (S1)
 CHANGING_MINUTES:
-	SBRC	CHANGE_COUNTER_MASK, CCMB
+	SBRC	T2COSC, CCMB
 	LDI		OUT_PORTD, 60
-	SBRS	CHANGE_COUNTER_MASK, CCMB
+	SBRS	T2COSC, CCMB
 	MOV		OUT_PORTD, MINUTE_COUNT
 	RET
 
@@ -444,9 +413,9 @@ SHOW_DAY:
 
 // Modo Cambiardia (S4)
 CHANGING_DAYS:
-	SBRC	CHANGE_COUNTER_MASK, CCMB
+	SBRC	T2COSC, CCMB
 	LDI		OUT_PORTD, 60
-	SBRS	CHANGE_COUNTER_MASK, CCMB
+	SBRS	T2COSC, CCMB
 	MOV		OUT_PORTD, DAY_COUNT
 	RET
 
@@ -457,9 +426,9 @@ SHOW_ALARM_MINUTES:
 
 // Modo CambiarMinutos (S1)
 CHANGE_ALARM_MINUTES:
-	SBRC	CHANGE_COUNTER_MASK, CCMB
+	SBRC	T2COSC, CCMB
 	LDI		OUT_PORTD, 60
-	SBRS	CHANGE_COUNTER_MASK, CCMB
+	SBRS	T2COSC, CCMB
 	MOV		OUT_PORTD, ALARM_MINUTES
 	RET
 
@@ -468,11 +437,7 @@ CHANGE_ALARM_MINUTES:
 // --------------------------------------------------------------------
 // LOOKUP TABLE
 LOOKUP_TABLE:
-	// Guardar bit 7 de PORTD en el Bit T del SREG
-	IN		R17, PORTD
-	BST		R17, 7
-	
-	// Sacar dato de tabla
+	// Reiniciar dirección del puntero Z
 	LDI		ZH, HIGH(TABLA<<1)
 	LDI		ZL, LOW(TABLA<<1)
 
@@ -493,11 +458,28 @@ LOOKUP_TABLE:
 	INC		ZL
 	LPM		R16, Z
 
-	// Cargar bit de leds intermitentes
-	BLD		R16, 7
+	// A partir de ahora, R16 contiene los dos bytes a la salida de un display, debemos activar o desactivar el último bit
 
 	// Mostrar en PORTD
 	OUT		PORTD, R16
+
+	// Aquí es donde debemos implementar los LEDs intermitentes
+	// Usaremos el oscilador custom con TIMER2 (T2COSC)
+	// Leeremos el bit ILED_CB
+	
+	// Si el bit ILED_CB está apagado, apagar los LEDs
+	SBRC	T2COSC, ILED_CB
+	SBI		PORTD, PD7
+
+	// Si el bit ILED_CB en T2COSC está encendido, encender los LEDss
+	SBRS	T2COSC, ILED_CB
+	CBI		PORTD, PD7
+
+	// ¡Bravo! Ahora tenemos LEDs intermitentes (En teoría)
+	// Es importante que para que los LEDs tititlen cada 500 ms el periodo entre desbordamientos del TIMER2
+	// Debe ser el cociente entre 500ms y una potencia de 2 (Por ejemplo 250).
+	// Esto, por alguna razón, también genera oscilaciones de frecuencias más estables.
+	// Si ILED_CB es igual a CCMB, los LEDs se encienden cuando los displays se apagan.
 
 	RET
 
@@ -1115,26 +1097,13 @@ TIMER2_ISR:
 	CALL	RESET_TIMER2
 
 	// INCREMENTAR en 1 la máscara de OUTPORTD para modos de cambio de contadores
-	INC		CHANGE_COUNTER_MASK ; INCREMENTAR en 1 el último bit de este registro
+	INC		T2COSC ; INCREMENTAR en 1 el último bit de este registro
 
-	// Incrementar el contador auxiliar hasta 6
-	INC		T2_AUX_COUNT
-	
-	// Leer T2_AUX_COUNT y comparar
-	MOV		R16, T2_AUX_COUNT 
-	CPI		R16, 6
-	BRLO	END_T2_ISR
-
-	// Si el contador rebasa 6, reiniciar y alternar el bit PD7
-	CLR		T2_AUX_COUNT		; Guardar el reinicio del contador
-	IN		R16, PORTD			; Leer estado actual de PORTD
-	LDI		R17, (1 << PD7)
-    EOR		R16, R17			; Alternar bit PD7 (D7)
-    OUT		PORTD, R16			; Escribir nuevo estado
+	// Aquí va a saltar a END_T2_ISR
 
 /*
 NOTA:
-Obsérve cómo usamos CHANGE_COUNTER_MASK como un oscilador de frecuencia variable. Al tomar un bit de mayor orden incrementamos
+Obsérve cómo usamos T2COSC como un oscilador de frecuencia variable. Al tomar un bit de mayor orden incrementamos
 la frecuencia de oscilación.
 */
 
