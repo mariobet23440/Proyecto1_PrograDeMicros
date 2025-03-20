@@ -126,10 +126,14 @@ el periodo entre desbordamientos del TIMER1.
 .equ	T8 = 0b1111111
 .equ	T9 = 0b1111100 
 
+// Selector de bit para registro máscara CHANGE_COUNTER_MASK
+.equ	CCMB = 1
+
 // R16 y R17 quedan como registros temporales
 
 // Registros inferiores (d < 16)
 .def	T2_AUX_COUNT = R2
+.def	CHANGE_COUNTER_MASK = R3						; Máscara para PORTD
 
 // Registros auxiliares (16 <= d <= 25)
 .def	MINUTE_COUNT = R18
@@ -153,6 +157,9 @@ TABLA:
 	.db T3, T0, T3, T1, T3, T2, T3, T3, T3, T4, T3, T5, T3, T6, T3, T7, T3, T8, T3, T9
 	.db T4, T0, T4, T1, T4, T2, T4, T3, T4, T4, T4, T5, T4, T6, T4, T7, T4, T8, T4, T9
 	.db T5, T0, T5, T1, T5, T2, T5, T3, T5, T4, T5, T5, T5, T6, T5, T7, T5, T8, T5, T9
+	.db 0x00, 0x00
+
+// Observe que los últimos dos datos son para mostrar nada (OUT_PORTD debe ser 61)
 
 // --------------------------------------------------------------------
 // | SETUP															  |
@@ -214,6 +221,7 @@ START:
 	SEI
 
 	// - INICIALIZACIÓN DE REGISTROS -
+	CLR		CHANGE_COUNTER_MASK
 	LDI		MUX_SIGNAL, 0X01
 	;CLR		MINUTE_COUNT
 	;CLR		HOUR_COUNT
@@ -227,8 +235,6 @@ START:
 	LDI		HOUR_COUNT, 0X02
 	LDI		DAY_COUNT, 0X03
 	LDI		MONTH_COUNT,0X04
-
-	
 
 
 // --------------------------------------------------------------------
@@ -311,7 +317,7 @@ MODE_DISPLAY43:
 
 	// CambiarHoras (S2)
 	CPI		STATE, S2
-	BREQ	SHOW_HOURS
+	BREQ	CHANGING_HOURS
 	
 	// MostrarFecha (S3)
 	CPI		STATE, S3
@@ -323,7 +329,7 @@ MODE_DISPLAY43:
 
 	// CambiarMes (S5)
 	CPI		STATE, S5
-	BREQ	SHOW_MONTH
+	BREQ	CHANGING_MONTHS
 
 	// ModoAlarma (S6)
 	CPI		STATE, S6
@@ -338,11 +344,29 @@ MODE_DISPLAY43:
 	BREQ	SHOW_HOURS
 	RET
 
+// Modos MostrarHora (S0) y CambiarMinutos (S1)
 SHOW_HOURS:
 	MOV		OUT_PORTD, HOUR_COUNT
 	RET
 
+// Modo CambiarHoras (S2)
+CHANGING_HOURS:
+	SBRC	CHANGE_COUNTER_MASK, CCMB
+	LDI		OUT_PORTD, 60
+	SBRS	CHANGE_COUNTER_MASK, CCMB
+	MOV		OUT_PORTD, HOUR_COUNT
+	RET
+
+// Modos MostrarFecha (S3) y MostrarDias (S4)
 SHOW_MONTH:
+	MOV		OUT_PORTD, MONTH_COUNT
+	RET
+
+// Modo CambiarMes (S5)
+CHANGING_MONTHS:
+	SBRC	CHANGE_COUNTER_MASK, CCMB
+	LDI		OUT_PORTD, 60
+	SBRS	CHANGE_COUNTER_MASK, CCMB
 	MOV		OUT_PORTD, MONTH_COUNT
 	RET
 
@@ -354,7 +378,7 @@ MODE_DISPLAY21:
 
 	// CambiarMinutos (S1)
 	CPI		STATE, S1
-	BREQ	SHOW_MINUTES
+	BREQ	CHANGING_MINUTES
 
 	// CambiarHoras (S2)
 	CPI		STATE, S2
@@ -366,7 +390,7 @@ MODE_DISPLAY21:
 
 	// CambiarDia (S4)
 	CPI		STATE, S4
-	BREQ	SHOW_DAY
+	BREQ	CHANGING_DAYS
 
 	// CambiarMes (S5)
 	CPI		STATE, S5
@@ -385,14 +409,31 @@ MODE_DISPLAY21:
 	BREQ	SHOW_MINUTES
 	RET
 
+// Modos MostrarHora (S0) y CambiarHoras (S2)
 SHOW_MINUTES:
 	MOV		OUT_PORTD, MINUTE_COUNT
 	RET
 
+// Modo CambiarMinutos (S1)
+CHANGING_MINUTES:
+	SBRC	CHANGE_COUNTER_MASK, CCMB
+	LDI		OUT_PORTD, 60
+	SBRS	CHANGE_COUNTER_MASK, CCMB
+	MOV		OUT_PORTD, MINUTE_COUNT
+	RET
+
+// Modos MostrarFecha (S3) y MostrarMeses (S5)
 SHOW_DAY:
 	MOV		OUT_PORTD, DAY_COUNT
 	RET
 
+// Modo Cambiardia (S4)
+CHANGING_DAYS:
+	SBRC	CHANGE_COUNTER_MASK, CCMB
+	LDI		OUT_PORTD, 60
+	SBRS	CHANGE_COUNTER_MASK, CCMB
+	MOV		OUT_PORTD, DAY_COUNT
+	RET
 
 // --------------------------------------------------------------------
 // | RUTINA NO DE INTERRUPCIÓN 3 - LOOKUP_TABLE (Verificado)		  |
@@ -493,13 +534,13 @@ PCINT_ISR:
 	SBIS	PINB, PB1
 	JMP		NEXT_STATE_LOGIC_PB1
 
-	// Incrementar contador con PB3
-	SBIS	PINB, PB3
+	// Incrementar contador con PB2
+	SBIS	PINB, PB2
 	JMP		INCREMENTAR_PC
 
-	// Decrementar contador con PB4
-	;SBIS	PINB, PB4
-	;JMP		DECREMENTAR_PC
+	// Decrementar contador con PB3
+	SBIS	PINB, PB3
+	JMP		DECREMENTAR_PC
 	
 	// Si no se detecta nada, ir al final
 	JMP		END_PC_ISR
@@ -670,23 +711,131 @@ INCREMENTAR_PC:
 	SBRC	STATE, S1B
 	INC		MINUTE_COUNT
 	SBRC	STATE, S1B
-	JMP		COMPARACION_MINUTOS_HORAS
+	JMP		COMPARACION_MINUTOS_HORAS_INC
 
 	// CambiarHoras (S2)
 	SBRC	STATE, S2B
 	INC		HOUR_COUNT
 	SBRC	STATE, S2B
-	JMP		COMPARACION_HORAS_DIAS
+	JMP		COMPARACION_HORAS_DIAS_INC
 	
 	// CambiarDias (S4)
 	SBRC	STATE, S4B
 	INC		DAY_COUNT
 	SBRC	STATE, S4B
-	JMP		COMPARACION_DIAS_MESES
+	JMP		COMPARACION_DIAS_MESES_INC
 
 	// CambiarMeses (S5)
 	SBRC	STATE, S5B
 	JMP		AUMENTAR_MES
+
+DECREMENTAR_PC:
+	// CambiarMinutos (S1)
+	SBRC	STATE, S1B	
+	JMP		DECREMENTAR_MINUTOS
+
+	// CambiarHoras (S2)
+	SBRC	STATE, S2B
+	JMP		DECREMENTAR_HORAS
+		
+	// CambiarDias (S4)
+	SBRC	STATE, S4B
+	JMP		DECREMENTAR_DIAS
+
+	// CambiarMeses (S5)
+	SBRC	STATE, S5B
+	JMP		DECREMENTAR_MESES
+
+DECREMENTAR_MINUTOS:
+	// Comparar con cero
+	CPI		MINUTE_COUNT, 0
+	BREQ	UNDERFLOW_MINUTOS
+	
+	// Si el contador de minutos es mayor a cero, restar uno
+	DEC		MINUTE_COUNT
+	JMP		END_PC_ISR
+
+// Si el contador de minutos da cero, cargar 59 y disminuir horas
+UNDERFLOW_MINUTOS:
+	LDI		MINUTE_COUNT, 59
+	JMP		DECREMENTAR_HORAS
+
+// Si el número de horas no es cero, disminuir
+DECREMENTAR_HORAS:
+	// Comparar con cero
+	CPI		HOUR_COUNT, 0
+	BREQ	UNDERFLOW_HORAS
+	
+	// Si el contador es mayor a cero, restar uno
+	DEC		HOUR_COUNT
+	JMP		END_PC_ISR
+	
+UNDERFLOW_HORAS:
+	LDI		HOUR_COUNT, 23
+	JMP		DECREMENTAR_DIAS
+
+DECREMENTAR_DIAS:
+	// Comparar con uno
+	CPI		DAY_COUNT, 1
+	BREQ	UNDERFLOW_DIAS
+	
+	// Si el contador es mayor a cero, restar uno
+	DEC		DAY_COUNT
+	JMP		END_PC_ISR
+
+// Esta función se parece mucho a COMPARACION_DIAS_MESES_INC pero al revés
+UNDERFLOW_DIAS:	
+	// Verificar si el mes es marzo (Underflow a febrero)
+	CPI		MONTH_COUNT, 3
+	BREQ	UNDERFLOW_MARZO
+
+	// Meses precedidos por meses de 31 días
+    CPI		MONTH_COUNT, 1			; Enero (underflow a Diciembre)
+    BREQ	UNDERFLOW_A_MES31
+	CPI		MONTH_COUNT, 2			; Febrero (underflow a Enero)
+    BREQ	UNDERFLOW_A_MES31
+	CPI		MONTH_COUNT, 4			; Abril (underflow a Marzo)
+    BREQ	UNDERFLOW_A_MES31
+    CPI		MONTH_COUNT, 6			; Junio (underflow a Mayo)
+    BREQ	UNDERFLOW_A_MES31
+	CPI		MONTH_COUNT, 8			; Agosto (underflow a Junio)
+    BREQ	UNDERFLOW_A_MES31
+    CPI		MONTH_COUNT, 9			; Septiembre (underflow a Agosto)
+    BREQ	UNDERFLOW_A_MES31
+    CPI		MONTH_COUNT, 11			; Noviembre (underflow a Octubre)
+    BREQ	UNDERFLOW_A_MES31
+
+	// Meses precedidos por meses de 30 días
+	RJMP	UNDERFLOW_A_MES30
+
+// Si el mes donde ocurre el overflow es marzo, cargar a 28 días
+UNDERFLOW_MARZO:
+    LDI		DAY_COUNT, 28
+    RJMP	DECREMENTAR_MESES
+
+// Si el mes donde ocurre el overflow es enero, febrero, abril, junio, septiembre y noviembre
+UNDERFLOW_A_MES31:
+    LDI		DAY_COUNT, 31
+	RJMP	DECREMENTAR_MESES
+
+// Underflow a un mes de 30 días
+UNDERFLOW_A_MES30:
+    LDI		DAY_COUNT, 30
+	RJMP	DECREMENTAR_MESES
+
+// AUMENTAR MES
+DECREMENTAR_MESES:
+	// Comparar con uno
+	CPI		MONTH_COUNT, 1
+	BRLO	UNDERFLOW_MESES
+
+	// Si el mes no es enero, decrementar contador
+	DEC		MONTH_COUNT
+	RJMP	END_PC_ISR
+
+UNDERFLOW_MESES:
+	LDI		MONTH_COUNT, 12
+	RJMP	END_PC_ISR
 	
 
 END_PC_ISR:
@@ -742,15 +891,15 @@ TIMER1_ISR:
 	INC		MINUTE_COUNT
 
 // - ESTAS SUBRUTINAS SE COMPARTEN CON LAS SUBRUTINAS DE PC -
-COMPARACION_MINUTOS_HORAS:	
+COMPARACION_MINUTOS_HORAS_INC:	
 	// INCREMENTO DE HORAS
-	// Si MINUTE_TENS es mayor o igual a 60, limpiarlo e incrementar HOUR_COUNT
+	// Si MINUTE_COUNT es mayor o igual a 60, limpiarlo e incrementar HOUR_COUNT
 	CPI		MINUTE_COUNT, 60
 	BRLO	INTERMEDIATE_JUMP1
 	CLR		MINUTE_COUNT
 	INC		HOUR_COUNT
 
-COMPARACION_HORAS_DIAS:
+COMPARACION_HORAS_DIAS_INC:
 	// INCREMENTO DE DÍAS
 	// Si HOUR_COUNT es mayor o igual a 24, limpiarlo e incrementar DAY_COUNT
 	CPI		HOUR_COUNT, 24
@@ -766,14 +915,14 @@ COMPARACION_HORAS_DIAS:
 	// Pero, si ese no es el caso
 	// "Goku eta vaina se puso seria"
 	// Si el número de días excede 29, incrementar mes (Muchas comparaciones)
-	RJMP	COMPARACION_DIAS_MESES
+	RJMP	COMPARACION_DIAS_MESES_INC
 
 INTERMEDIATE_JUMP1:
 	JMP	END_T1PC_ISR
 
 	
 // COMPARACIONES PARA INCREMENTO DE MESES
-COMPARACION_DIAS_MESES:	
+COMPARACION_DIAS_MESES_INC:	
 	// Verificar si el mes es febrero
 	CPI		MONTH_COUNT, 2
 	BREQ	FEBRERO
@@ -823,7 +972,7 @@ MESES_31:
 AUMENTAR_MES:
 	// Aumentar contador de meses
 	INC		MONTH_COUNT
-	CPI		MONTH_COUNT, 12
+	CPI		MONTH_COUNT, 13
 	BRLO	END_T1PC_ISR
 
 	// Si las unidades de meses excenden 12, reiniciar ambos contadores
@@ -849,6 +998,9 @@ TIMER2_ISR:
 	// Reiniciar el TIMER2
 	CALL	RESET_TIMER2
 
+	// Aumentar en 1 la máscara de OUTPORTD para modos de cambio de contadores
+	INC		CHANGE_COUNTER_MASK ; Aumentar en 1 el último bit de este registro
+
 	// Incrementar el contador auxiliar hasta 6
 	INC		T2_AUX_COUNT
 	
@@ -863,7 +1015,13 @@ TIMER2_ISR:
 	LDI		R17, (1 << PD7)
     EOR		R16, R17			; Alternar bit PD7 (D7)
     OUT		PORTD, R16			; Escribir nuevo estado
-	
+
+/*
+NOTA:
+Obsérve cómo usamos CHANGE_COUNTER_MASK como un oscilador de frecuencia variable. Al tomar un bit de mayor orden incrementamos
+la frecuencia de oscilación.
+*/
+
 
 // Terminar Rutina de Interrupción
 END_T2_ISR:
