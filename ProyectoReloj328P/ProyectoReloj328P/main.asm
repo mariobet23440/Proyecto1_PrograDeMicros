@@ -197,7 +197,7 @@ START:
 	// Configurar todos los pines de PORTC como salidas
 	LDI		R16, 0XFF
 	OUT		DDRC, R16
-	LDI		R16, 0XFF
+	LDI		R16, 0X10
 	OUT		PORTC, R16
 
 	// Configurar los pines de PORTD como salidas
@@ -554,6 +554,15 @@ PCINT_ISR:
 	IN		R16, SREG
 	PUSH	R16
 
+	// Si la alarma no está encendida, saltar a lo siguiente.
+	SBIS	PORTB, PB5
+	JMP		BUTTON_CHOOSER
+
+	// Si está encendida, apagarla con cualquier interrupción Pin change y salir (No cambiar nada)
+	CBI		PORTB, PB5
+	JMP		END_PC_ISR
+
+BUTTON_CHOOSER:
 	// Cambiar Indicador con PB0
 	SBIS	PINB, PB0
 	JMP		NEXT_STATE_LOGIC_PB0
@@ -572,6 +581,7 @@ PCINT_ISR:
 	
 	// Si no se detecta nada, ir al final
 	JMP		END_PC_ISR
+
 	
 // Lógica de Siguiente estado si se presiona PB0
 NEXT_STATE_LOGIC_PB0:
@@ -713,21 +723,18 @@ ENCENDER_LED_HORA:
 	SBI		PORTC, PC4
 	CBI		PORTC, PC5
 	CBI		PORTB, PB4
-	CBI		PORTB, PB5		; Quitar esta línea en el programa final
 	JMP		END_PC_ISR
 
 ENCENDER_LED_FECHA:
 	CBI		PORTC, PC4
 	SBI		PORTC, PC5
 	CBI		PORTB, PB4
-	CBI		PORTB, PB5		; Quitar esta línea en el programa final
 	JMP		END_PC_ISR
 
 ENCENDER_LED_ALARMA:
 	CBI		PORTC, PC4
 	CBI		PORTC, PC5
 	SBI		PORTB, PB4
-	CBI		PORTB, PB5		; Quitar esta línea en el programa final
 	JMP		END_PC_ISR
 
 // INCREMENTAR CONTADOR --------------------------------------------
@@ -1086,6 +1093,9 @@ INCREMENTAR_MES:
 
 // Terminar Rutina de Interrupción
 END_T1PC_ISR:
+	// Después de haber cambiado hora y minutos, ver si hay que prender la alarma
+	CALL	ALARMA_INTERRUPT
+
 	POP		R16
 	OUT		SREG, R16
 	POP		R16
@@ -1135,4 +1145,22 @@ END_T2_ISR:
 	OUT		SREG, R16
 	POP		R16
 	RETI
+
+// --------------------------------------------------------------------
+// | SUBRUTINAS_COMPARTIDAS											  |
+// --------------------------------------------------------------------
+// RUTINA NO DE INTERRUPCIÓN QUE PODRÍA FULMINARSE
+ALARMA_INTERRUPT:
+	CP		MINUTE_COUNT, ALARM_MINUTES
+	BREQ	ALARMA_COMPARAR_HORAS
+	RET
+
+ALARMA_COMPARAR_HORAS:
+	CP		HOUR_COUNT, ALARM_HOUR
+	BRNE	NO_ACTIVAR_ALARMA
+	SBI		PORTB, PB5
+	RET
+
+NO_ACTIVAR_ALARMA:
+	RET
 	

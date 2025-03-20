@@ -24,9 +24,9 @@
  <LABELS>
   <START><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>173</LINE></START>
   <PCINT_ISR><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>552</LINE></PCINT_ISR>
-  <TIMER0_ISR><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>958</LINE></TIMER0_ISR>
-  <TIMER1_ISR><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>988</LINE></TIMER1_ISR>
-  <TIMER2_ISR><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>1099</LINE></TIMER2_ISR>
+  <TIMER0_ISR><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>965</LINE></TIMER0_ISR>
+  <TIMER1_ISR><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>995</LINE></TIMER1_ISR>
+  <TIMER2_ISR><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>1109</LINE></TIMER2_ISR>
   <TABLA><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>159</LINE></TABLA>
   <RESET_TIMER0><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>508</LINE></RESET_TIMER0>
   <RESET_TIMER1><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>521</LINE></RESET_TIMER1>
@@ -53,46 +53,50 @@
   <CHANGING_DAYS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>446</LINE></CHANGING_DAYS>
   <SHOW_ALARM_MINUTES><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>454</LINE></SHOW_ALARM_MINUTES>
   <CHANGE_ALARM_MINUTES><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>459</LINE></CHANGE_ALARM_MINUTES>
-  <NEXT_STATE_LOGIC_PB0><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>577</LINE></NEXT_STATE_LOGIC_PB0>
-  <NEXT_STATE_LOGIC_PB1><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>626</LINE></NEXT_STATE_LOGIC_PB1>
-  <INCREMENTAR_PC><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>735</LINE></INCREMENTAR_PC>
-  <DECREMENTAR_PC><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>798</LINE></DECREMENTAR_PC>
-  <END_PC_ISR><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>947</LINE></END_PC_ISR>
-  <INTERMEDIATE_JUMP_PCINT_ISR><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>621</LINE></INTERMEDIATE_JUMP_PCINT_ISR>
-  <COPY_NEXT_STATE><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>666</LINE></COPY_NEXT_STATE>
-  <ENCENDER_LEDS_MODO><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>671</LINE></ENCENDER_LEDS_MODO>
-  <ENCENDER_LED_HORA><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>712</LINE></ENCENDER_LED_HORA>
-  <ENCENDER_LED_FECHA><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>719</LINE></ENCENDER_LED_FECHA>
-  <ENCENDER_LED_ALARMA><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>726</LINE></ENCENDER_LED_ALARMA>
-  <COMPARACION_MINUTOS_HORAS_INC><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>1000</LINE></COMPARACION_MINUTOS_HORAS_INC>
-  <COMPARACION_HORAS_DIAS_INC><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>1007</LINE></COMPARACION_HORAS_DIAS_INC>
-  <COMPARACION_DIAS_MESES_INC><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>1030</LINE></COMPARACION_DIAS_MESES_INC>
-  <INCREMENTAR_MES><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>1076</LINE></INCREMENTAR_MES>
-  <INCREMENTAR_ALARMA_MINUTOS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>769</LINE></INCREMENTAR_ALARMA_MINUTOS>
-  <INCREMENTAR_ALARMA_HORAS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>782</LINE></INCREMENTAR_ALARMA_HORAS>
-  <OVERFLOW_ALARMA_MINUTOS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>779</LINE></OVERFLOW_ALARMA_MINUTOS>
-  <OVERFLOW_ALARMA_HORAS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>792</LINE></OVERFLOW_ALARMA_HORAS>
-  <DECREMENTAR_MINUTOS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>827</LINE></DECREMENTAR_MINUTOS>
-  <DECREMENTAR_HORAS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>842</LINE></DECREMENTAR_HORAS>
-  <DECREMENTAR_DIAS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>855</LINE></DECREMENTAR_DIAS>
-  <DECREMENTAR_MESES><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>905</LINE></DECREMENTAR_MESES>
-  <DECREMENTAR_ALARMA_MINUTOS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>918</LINE></DECREMENTAR_ALARMA_MINUTOS>
-  <DECREMENTAR_ALARMA_HORAS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>932</LINE></DECREMENTAR_ALARMA_HORAS>
-  <UNDERFLOW_MINUTOS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>837</LINE></UNDERFLOW_MINUTOS>
-  <UNDERFLOW_HORAS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>851</LINE></UNDERFLOW_HORAS>
-  <UNDERFLOW_DIAS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>865</LINE></UNDERFLOW_DIAS>
-  <UNDERFLOW_MARZO><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>890</LINE></UNDERFLOW_MARZO>
-  <UNDERFLOW_A_MES31><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>895</LINE></UNDERFLOW_A_MES31>
-  <UNDERFLOW_A_MES30><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>900</LINE></UNDERFLOW_A_MES30>
-  <UNDERFLOW_MESES><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>914</LINE></UNDERFLOW_MESES>
-  <UNDERFLOW_ALARMA_MINUTOS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>928</LINE></UNDERFLOW_ALARMA_MINUTOS>
-  <UNDERFLOW_ALARMA_HORAS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>942</LINE></UNDERFLOW_ALARMA_HORAS>
-  <END_T0_ISR><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>979</LINE></END_T0_ISR>
-  <INTERMEDIATE_JUMP1><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>1025</LINE></INTERMEDIATE_JUMP1>
-  <END_T1PC_ISR><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>1088</LINE></END_T1PC_ISR>
-  <FEBRERO><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>1048</LINE></FEBRERO>
-  <MESES_30><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>1057</LINE></MESES_30>
-  <MESES_31><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>1066</LINE></MESES_31>
-  <END_T2_ISR><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>1133</LINE></END_T2_ISR>
+  <BUTTON_CHOOSER><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>565</LINE></BUTTON_CHOOSER>
+  <END_PC_ISR><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>954</LINE></END_PC_ISR>
+  <NEXT_STATE_LOGIC_PB0><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>587</LINE></NEXT_STATE_LOGIC_PB0>
+  <NEXT_STATE_LOGIC_PB1><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>636</LINE></NEXT_STATE_LOGIC_PB1>
+  <INCREMENTAR_PC><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>742</LINE></INCREMENTAR_PC>
+  <DECREMENTAR_PC><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>805</LINE></DECREMENTAR_PC>
+  <INTERMEDIATE_JUMP_PCINT_ISR><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>631</LINE></INTERMEDIATE_JUMP_PCINT_ISR>
+  <COPY_NEXT_STATE><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>676</LINE></COPY_NEXT_STATE>
+  <ENCENDER_LEDS_MODO><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>681</LINE></ENCENDER_LEDS_MODO>
+  <ENCENDER_LED_HORA><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>722</LINE></ENCENDER_LED_HORA>
+  <ENCENDER_LED_FECHA><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>728</LINE></ENCENDER_LED_FECHA>
+  <ENCENDER_LED_ALARMA><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>734</LINE></ENCENDER_LED_ALARMA>
+  <COMPARACION_MINUTOS_HORAS_INC><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>1007</LINE></COMPARACION_MINUTOS_HORAS_INC>
+  <COMPARACION_HORAS_DIAS_INC><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>1014</LINE></COMPARACION_HORAS_DIAS_INC>
+  <COMPARACION_DIAS_MESES_INC><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>1037</LINE></COMPARACION_DIAS_MESES_INC>
+  <INCREMENTAR_MES><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>1083</LINE></INCREMENTAR_MES>
+  <INCREMENTAR_ALARMA_MINUTOS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>776</LINE></INCREMENTAR_ALARMA_MINUTOS>
+  <INCREMENTAR_ALARMA_HORAS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>789</LINE></INCREMENTAR_ALARMA_HORAS>
+  <OVERFLOW_ALARMA_MINUTOS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>786</LINE></OVERFLOW_ALARMA_MINUTOS>
+  <OVERFLOW_ALARMA_HORAS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>799</LINE></OVERFLOW_ALARMA_HORAS>
+  <DECREMENTAR_MINUTOS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>834</LINE></DECREMENTAR_MINUTOS>
+  <DECREMENTAR_HORAS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>849</LINE></DECREMENTAR_HORAS>
+  <DECREMENTAR_DIAS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>862</LINE></DECREMENTAR_DIAS>
+  <DECREMENTAR_MESES><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>912</LINE></DECREMENTAR_MESES>
+  <DECREMENTAR_ALARMA_MINUTOS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>925</LINE></DECREMENTAR_ALARMA_MINUTOS>
+  <DECREMENTAR_ALARMA_HORAS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>939</LINE></DECREMENTAR_ALARMA_HORAS>
+  <UNDERFLOW_MINUTOS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>844</LINE></UNDERFLOW_MINUTOS>
+  <UNDERFLOW_HORAS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>858</LINE></UNDERFLOW_HORAS>
+  <UNDERFLOW_DIAS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>872</LINE></UNDERFLOW_DIAS>
+  <UNDERFLOW_MARZO><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>897</LINE></UNDERFLOW_MARZO>
+  <UNDERFLOW_A_MES31><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>902</LINE></UNDERFLOW_A_MES31>
+  <UNDERFLOW_A_MES30><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>907</LINE></UNDERFLOW_A_MES30>
+  <UNDERFLOW_MESES><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>921</LINE></UNDERFLOW_MESES>
+  <UNDERFLOW_ALARMA_MINUTOS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>935</LINE></UNDERFLOW_ALARMA_MINUTOS>
+  <UNDERFLOW_ALARMA_HORAS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>949</LINE></UNDERFLOW_ALARMA_HORAS>
+  <END_T0_ISR><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>986</LINE></END_T0_ISR>
+  <INTERMEDIATE_JUMP1><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>1032</LINE></INTERMEDIATE_JUMP1>
+  <END_T1PC_ISR><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>1095</LINE></END_T1PC_ISR>
+  <FEBRERO><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>1055</LINE></FEBRERO>
+  <MESES_30><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>1064</LINE></MESES_30>
+  <MESES_31><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>1073</LINE></MESES_31>
+  <ALARMA_INTERRUPT><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>1153</LINE></ALARMA_INTERRUPT>
+  <END_T2_ISR><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>1143</LINE></END_T2_ISR>
+  <ALARMA_COMPARAR_HORAS><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>1158</LINE></ALARMA_COMPARAR_HORAS>
+  <NO_ACTIVAR_ALARMA><FILE>C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm</FILE><LINE>1164</LINE></NO_ACTIVAR_ALARMA>
  </LABELS>
 </ASSEMBLER_INFO>

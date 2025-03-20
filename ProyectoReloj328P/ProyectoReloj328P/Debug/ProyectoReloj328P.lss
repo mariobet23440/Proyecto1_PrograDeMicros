@@ -1,5 +1,5 @@
 
-AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm Wed Mar 19 22:25:36 2025
+AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm Wed Mar 19 23:03:19 2025
 
 [builtin](2): Including file 'C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\m328Pdef.inc'
 [builtin](2): Including file 'C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\m328Pdef.inc'
@@ -1046,15 +1046,15 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  
                                  ; Interrupciones por overflow de TIMER0 (Modo Normal)
                                  .org OVF0addr				; Vector de interrupción para TIMER0_OVF
-000020 c6e4                          RJMP TIMER0_ISR			; Saltar a la rutina de interrupción
+000020 c6e7                          RJMP TIMER0_ISR			; Saltar a la rutina de interrupción
                                  
                                  ; Interrupciones por overflow de TIMER1 (Modo Normal)
                                  .org OVF1addr				; Vector de interrupción para TIMER1_OVF
-00001a c6f9                          RJMP TIMER1_ISR			; Saltar a la rutina de interrupción
+00001a c6fc                          RJMP TIMER1_ISR			; Saltar a la rutina de interrupción
                                  
                                  ; Interrupciones por overflow de TIMER2 (Modo Normal)
                                  .org OVF2addr				; Vector de interrupción para TIMER2_OVF
-000012 c735                          RJMP TIMER2_ISR			; Saltar a la rutina de interrupción
+000012 c73a                          RJMP TIMER2_ISR			; Saltar a la rutina de interrupción
                                  
                                  
                                  // --------------------------------------------------------------------
@@ -1237,7 +1237,7 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  	// Configurar todos los pines de PORTC como salidas
 00054a ef0f                      	LDI		R16, 0XFF
 00054b b907                      	OUT		DDRC, R16
-00054c ef0f                      	LDI		R16, 0XFF
+00054c e100                      	LDI		R16, 0X10
 00054d b908                      	OUT		PORTC, R16
                                  
                                  	// Configurar los pines de PORTD como salidas
@@ -1594,401 +1594,408 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
 00061a b70f                      	IN		R16, SREG
 00061b 930f                      	PUSH	R16
                                  
+                                 	// Si la alarma no está encendida, saltar a lo siguiente.
+00061c 9b2d                      	SBIS	PORTB, PB5
+00061d 940c 0622                 	JMP		BUTTON_CHOOSER
+                                 
+                                 	// Si está encendida, apagarla con cualquier interrupción Pin change y salir (No cambiar nada)
+00061f 982d                      	CBI		PORTB, PB5
+000620 940c 0704                 	JMP		END_PC_ISR
+                                 
+                                 BUTTON_CHOOSER:
                                  	// Cambiar Indicador con PB0
-00061c 9b18                      	SBIS	PINB, PB0
-00061d 940c 062a                 	JMP		NEXT_STATE_LOGIC_PB0
+000622 9b18                      	SBIS	PINB, PB0
+000623 940c 0630                 	JMP		NEXT_STATE_LOGIC_PB0
                                  
                                  	// Cambiar modo de cambio de contadores con PB1
-00061f 9b19                      	SBIS	PINB, PB1
-000620 940c 0643                 	JMP		NEXT_STATE_LOGIC_PB1
+000625 9b19                      	SBIS	PINB, PB1
+000626 940c 0649                 	JMP		NEXT_STATE_LOGIC_PB1
                                  
                                  	// Incrementar contador con PB2
-000622 9b1a                      	SBIS	PINB, PB2
-000623 940c 0681                 	JMP		INCREMENTAR_PC
+000628 9b1a                      	SBIS	PINB, PB2
+000629 940c 0684                 	JMP		INCREMENTAR_PC
                                  
                                  	// Decrementar contador con PB3
-000625 9b1b                      	SBIS	PINB, PB3
-000626 940c 06a9                 	JMP		DECREMENTAR_PC
+00062b 9b1b                      	SBIS	PINB, PB3
+00062c 940c 06ac                 	JMP		DECREMENTAR_PC
                                  	
                                  	// Si no se detecta nada, ir al final
-000628 940c 0701                 	JMP		END_PC_ISR
+00062e 940c 0704                 	JMP		END_PC_ISR
+                                 
                                  	
                                  // Lógica de Siguiente estado si se presiona PB0
                                  NEXT_STATE_LOGIC_PB0:
                                  	// CambiarMinutos (S1) -> MostrarHora (S0)
-00062a fd80                      	SBRC	STATE, S1B
-00062b e090                      	LDI		NEXT_STATE, S0
+000630 fd80                      	SBRC	STATE, S1B
+000631 e090                      	LDI		NEXT_STATE, S0
                                  
                                  	// CambiarHoras (S2) -> MostrarHora (S0)
-00062c fd81                      	SBRC	STATE, S2B
-00062d e090                      	LDI		NEXT_STATE, S0
-                                 
-                                 	// MostrarFecha (S3) -> ModoAlarma (S6)
-00062e fd82                      	SBRC	STATE, S3B
-00062f e290                      	LDI		NEXT_STATE, S6
-                                 
-                                 	// CambiarDías (S4) -> MostrarFecha (S3)
-000630 fd83                      	SBRC	STATE, S4B
-000631 e094                      	LDI		NEXT_STATE, S3
-                                 
-                                 	// CambiarMeses (S5) -> MostrarFecha (S3)
-000632 fd84                      	SBRC	STATE, S5B
-000633 e094                      	LDI		NEXT_STATE, S3
+000632 fd81                      	SBRC	STATE, S2B
+000633 e090                      	LDI		NEXT_STATE, S0
                                  
                                  	// MostrarFecha (S3) -> ModoAlarma (S6)
 000634 fd82                      	SBRC	STATE, S3B
 000635 e290                      	LDI		NEXT_STATE, S6
                                  
-                                 	// ModoAlarma (S6) -> MostrarHora (S0)
-000636 fd85                      	SBRC	STATE, S6B
-000637 e090                      	LDI		NEXT_STATE, S0
+                                 	// CambiarDías (S4) -> MostrarFecha (S3)
+000636 fd83                      	SBRC	STATE, S4B
+000637 e094                      	LDI		NEXT_STATE, S3
                                  
-                                 	// AlarmaMinutos (S7) -> ModoAlarma (S6)
-000638 fd86                      	SBRC	STATE, S7B
-000639 e290                      	LDI		NEXT_STATE, S6
+                                 	// CambiarMeses (S5) -> MostrarFecha (S3)
+000638 fd84                      	SBRC	STATE, S5B
+000639 e094                      	LDI		NEXT_STATE, S3
                                  
-                                 	// AlarmaHoras (S8) -> ModoAlarma (S6)
-00063a fd87                      	SBRC	STATE, S8B
+                                 	// MostrarFecha (S3) -> ModoAlarma (S6)
+00063a fd82                      	SBRC	STATE, S3B
 00063b e290                      	LDI		NEXT_STATE, S6
                                  
+                                 	// ModoAlarma (S6) -> MostrarHora (S0)
+00063c fd85                      	SBRC	STATE, S6B
+00063d e090                      	LDI		NEXT_STATE, S0
+                                 
+                                 	// AlarmaMinutos (S7) -> ModoAlarma (S6)
+00063e fd86                      	SBRC	STATE, S7B
+00063f e290                      	LDI		NEXT_STATE, S6
+                                 
+                                 	// AlarmaHoras (S8) -> ModoAlarma (S6)
+000640 fd87                      	SBRC	STATE, S8B
+000641 e290                      	LDI		NEXT_STATE, S6
+                                 
                                  	// MostrarHoras (S0) -> MostrarFecha (S3)
-00063c 3080                      	CPI		STATE, 0
-00063d f419                      	BRNE	INTERMEDIATE_JUMP_PCINT_ISR
-00063e e094                      	LDI		NEXT_STATE, S3
-00063f 940c 0658                 	JMP		COPY_NEXT_STATE
+000642 3080                      	CPI		STATE, 0
+000643 f419                      	BRNE	INTERMEDIATE_JUMP_PCINT_ISR
+000644 e094                      	LDI		NEXT_STATE, S3
+000645 940c 065e                 	JMP		COPY_NEXT_STATE
                                  
                                  // Salto intermedio por limitaciones de BRNE
                                  INTERMEDIATE_JUMP_PCINT_ISR:
-000641 940c 0658                 	JMP		COPY_NEXT_STATE
+000647 940c 065e                 	JMP		COPY_NEXT_STATE
                                  	
                                  
                                  // Lógica de Siguiente estado si se presiona PB1
                                  NEXT_STATE_LOGIC_PB1:
                                  	// CambiarMinutos (S1) -> CambiarHoras (S2)
-000643 fd80                      	SBRC	STATE, S1B
-000644 e092                      	LDI		NEXT_STATE, S2
+000649 fd80                      	SBRC	STATE, S1B
+00064a e092                      	LDI		NEXT_STATE, S2
                                  
                                  	// CambiarHoras (S2) -> MostrarHora (S0)
-000645 fd81                      	SBRC	STATE, S2B
-000646 e090                      	LDI		NEXT_STATE, S0
+00064b fd81                      	SBRC	STATE, S2B
+00064c e090                      	LDI		NEXT_STATE, S0
                                  
                                  	// MostrarFecha (S3) -> CambiarDias (S4)
-000647 fd82                      	SBRC	STATE, S3B
-000648 e098                      	LDI		NEXT_STATE, S4
+00064d fd82                      	SBRC	STATE, S3B
+00064e e098                      	LDI		NEXT_STATE, S4
                                  
                                  	// CambiarDías (S4) -> CambiarMeses (S5)
-000649 fd83                      	SBRC	STATE, S4B
-00064a e190                      	LDI		NEXT_STATE, S5
+00064f fd83                      	SBRC	STATE, S4B
+000650 e190                      	LDI		NEXT_STATE, S5
                                  
                                  	// CambiarMeses (S5) -> MostrarFecha (S3)
-00064b fd84                      	SBRC	STATE, S5B
-00064c e094                      	LDI		NEXT_STATE, S3
+000651 fd84                      	SBRC	STATE, S5B
+000652 e094                      	LDI		NEXT_STATE, S3
                                  
                                  	// ModoAlarma (S6) -> AlarmaMinutos (S7)
-00064d fd85                      	SBRC	STATE, S6B
-00064e e490                      	LDI		NEXT_STATE, S7
+000653 fd85                      	SBRC	STATE, S6B
+000654 e490                      	LDI		NEXT_STATE, S7
                                  
                                  	// AlarmaMinutos (S7) -> AlarmaHoras (S8)
-00064f fd86                      	SBRC	STATE, S7B
-000650 e890                      	LDI		NEXT_STATE, S8
+000655 fd86                      	SBRC	STATE, S7B
+000656 e890                      	LDI		NEXT_STATE, S8
                                  
                                  	// AlarmaHoras (S8) -> ModoAlarma (S6)
-000651 fd87                      	SBRC	STATE, S8B
-000652 e290                      	LDI		NEXT_STATE, S6
+000657 fd87                      	SBRC	STATE, S8B
+000658 e290                      	LDI		NEXT_STATE, S6
                                  
                                  	// MostrarHoras (S0) -> CambiarMinutos (S2)
-000653 3080                      	CPI		STATE, S0
-000654 f419                      	BRNE	COPY_NEXT_STATE
-000655 e091                      	LDI		NEXT_STATE, S1
-000656 940c 0658                 	JMP		COPY_NEXT_STATE
+000659 3080                      	CPI		STATE, S0
+00065a f419                      	BRNE	COPY_NEXT_STATE
+00065b e091                      	LDI		NEXT_STATE, S1
+00065c 940c 065e                 	JMP		COPY_NEXT_STATE
                                  
                                  // Copiar NEXT_STATE en STATE
                                  COPY_NEXT_STATE:
-000658 2f89                      	MOV		STATE, NEXT_STATE
-000659 940c 065b                 	JMP		ENCENDER_LEDS_MODO
+00065e 2f89                      	MOV		STATE, NEXT_STATE
+00065f 940c 0661                 	JMP		ENCENDER_LEDS_MODO
                                  
                                  // ENCENDER_LEDS_MODO -----------------------------------------
                                  ENCENDER_LEDS_MODO:
                                  	// MostrarHoras (S0)
-00065b 3080                      	CPI		STATE, S0
-00065c f091                      	BREQ	ENCENDER_LED_HORA
+000661 3080                      	CPI		STATE, S0
+000662 f091                      	BREQ	ENCENDER_LED_HORA
                                  
                                  	// CambiarMinutos (S1)
-00065d 3081                      	CPI		STATE, S1
-00065e f081                      	BREQ	ENCENDER_LED_HORA
+000663 3081                      	CPI		STATE, S1
+000664 f081                      	BREQ	ENCENDER_LED_HORA
                                  
                                  	// CambiarHoras (S2)
-00065f 3082                      	CPI		STATE, S2
-000660 f071                      	BREQ	ENCENDER_LED_HORA
+000665 3082                      	CPI		STATE, S2
+000666 f071                      	BREQ	ENCENDER_LED_HORA
                                  
                                  	// MostrarFecha (S3)
-000661 3084                      	CPI		STATE, S3
-000662 f091                      	BREQ	ENCENDER_LED_FECHA
+000667 3084                      	CPI		STATE, S3
+000668 f089                      	BREQ	ENCENDER_LED_FECHA
                                  
                                  	// CambiarDias (S4)
-000663 3088                      	CPI		STATE, S4
-000664 f081                      	BREQ	ENCENDER_LED_FECHA
+000669 3088                      	CPI		STATE, S4
+00066a f079                      	BREQ	ENCENDER_LED_FECHA
                                  
                                  	// CambiarMeses (S5)
-000665 3180                      	CPI		STATE, S5
-000666 f071                      	BREQ	ENCENDER_LED_FECHA
+00066b 3180                      	CPI		STATE, S5
+00066c f069                      	BREQ	ENCENDER_LED_FECHA
                                  
                                  	// Modo Alarma (S6)
-000667 3280                      	CPI		STATE, S6
-000668 f091                      	BREQ	ENCENDER_LED_ALARMA
+00066d 3280                      	CPI		STATE, S6
+00066e f081                      	BREQ	ENCENDER_LED_ALARMA
                                  
                                  	// AlarmaMinutos (S7)
-000669 3480                      	CPI		STATE, S7
-00066a f081                      	BREQ	ENCENDER_LED_ALARMA
+00066f 3480                      	CPI		STATE, S7
+000670 f071                      	BREQ	ENCENDER_LED_ALARMA
                                  
                                  	// AlarmaHoras (S8)
-00066b 3880                      	CPI		STATE, S8
-00066c f071                      	BREQ	ENCENDER_LED_ALARMA
+000671 3880                      	CPI		STATE, S8
+000672 f061                      	BREQ	ENCENDER_LED_ALARMA
                                  
                                  	// Salir (Si es que algo falla, por alguna razón)
-00066d 940c 0701                 	JMP		END_PC_ISR
+000673 940c 0704                 	JMP		END_PC_ISR
                                  
                                  // Encender LEDs Indicadores de Modo
                                  ENCENDER_LED_HORA:
-00066f 9a44                      	SBI		PORTC, PC4
-000670 9845                      	CBI		PORTC, PC5
-000671 982c                      	CBI		PORTB, PB4
-000672 982d                      	CBI		PORTB, PB5		; Quitar esta línea en el programa final
-000673 940c 0701                 	JMP		END_PC_ISR
+000675 9a44                      	SBI		PORTC, PC4
+000676 9845                      	CBI		PORTC, PC5
+000677 982c                      	CBI		PORTB, PB4
+000678 940c 0704                 	JMP		END_PC_ISR
                                  
                                  ENCENDER_LED_FECHA:
-000675 9844                      	CBI		PORTC, PC4
-000676 9a45                      	SBI		PORTC, PC5
-000677 982c                      	CBI		PORTB, PB4
-000678 982d                      	CBI		PORTB, PB5		; Quitar esta línea en el programa final
-000679 940c 0701                 	JMP		END_PC_ISR
+00067a 9844                      	CBI		PORTC, PC4
+00067b 9a45                      	SBI		PORTC, PC5
+00067c 982c                      	CBI		PORTB, PB4
+00067d 940c 0704                 	JMP		END_PC_ISR
                                  
                                  ENCENDER_LED_ALARMA:
-00067b 9844                      	CBI		PORTC, PC4
-00067c 9845                      	CBI		PORTC, PC5
-00067d 9a2c                      	SBI		PORTB, PB4
-00067e 982d                      	CBI		PORTB, PB5		; Quitar esta línea en el programa final
-00067f 940c 0701                 	JMP		END_PC_ISR
+00067f 9844                      	CBI		PORTC, PC4
+000680 9845                      	CBI		PORTC, PC5
+000681 9a2c                      	SBI		PORTB, PB4
+000682 940c 0704                 	JMP		END_PC_ISR
                                  
                                  // INCREMENTAR CONTADOR --------------------------------------------
                                  // Incrementar contador con PC (Vamos a reciclar algunas subrutinas)
                                  INCREMENTAR_PC:	
                                  	// CambiarMinutos (S1)
-000681 fd80                      	SBRC	STATE, S1B
-000682 9523                      	INC		MINUTE_COUNT
-000683 fd80                      	SBRC	STATE, S1B
-000684 940c 071a                 	JMP		COMPARACION_MINUTOS_HORAS_INC
+000684 fd80                      	SBRC	STATE, S1B
+000685 9523                      	INC		MINUTE_COUNT
+000686 fd80                      	SBRC	STATE, S1B
+000687 940c 071d                 	JMP		COMPARACION_MINUTOS_HORAS_INC
                                  
                                  	// CambiarHoras (S2)
-000686 fd81                      	SBRC	STATE, S2B
-000687 9533                      	INC		HOUR_COUNT
-000688 fd81                      	SBRC	STATE, S2B
-000689 940c 071e                 	JMP		COMPARACION_HORAS_DIAS_INC
+000689 fd81                      	SBRC	STATE, S2B
+00068a 9533                      	INC		HOUR_COUNT
+00068b fd81                      	SBRC	STATE, S2B
+00068c 940c 0721                 	JMP		COMPARACION_HORAS_DIAS_INC
                                  	
                                  	// CambiarDias (S4)
-00068b fd83                      	SBRC	STATE, S4B
-00068c 9543                      	INC		DAY_COUNT
-00068d fd83                      	SBRC	STATE, S4B
-00068e 940c 0727                 	JMP		COMPARACION_DIAS_MESES_INC
+00068e fd83                      	SBRC	STATE, S4B
+00068f 9543                      	INC		DAY_COUNT
+000690 fd83                      	SBRC	STATE, S4B
+000691 940c 072a                 	JMP		COMPARACION_DIAS_MESES_INC
                                  
                                  	// CambiarMeses (S5)
-000690 fd84                      	SBRC	STATE, S5B
-000691 940c 073e                 	JMP		INCREMENTAR_MES
+000693 fd84                      	SBRC	STATE, S5B
+000694 940c 0741                 	JMP		INCREMENTAR_MES
                                  
                                  	// AlarmaMinutos (S7)
-000693 fd86                      	SBRC	STATE, S7B
-000694 c004                      	RJMP	INCREMENTAR_ALARMA_MINUTOS
+000696 fd86                      	SBRC	STATE, S7B
+000697 c004                      	RJMP	INCREMENTAR_ALARMA_MINUTOS
                                  
                                  	// AlarmaHoras (S8)
-000695 fd87                      	SBRC	STATE, S8B
-000696 c009                      	RJMP	INCREMENTAR_ALARMA_HORAS
+000698 fd87                      	SBRC	STATE, S8B
+000699 c009                      	RJMP	INCREMENTAR_ALARMA_HORAS
                                  	
                                  	// Si no es ni fu ni fa salir
-000697 940c 0701                 	JMP		END_PC_ISR
+00069a 940c 0704                 	JMP		END_PC_ISR
                                  
                                  INCREMENTAR_ALARMA_MINUTOS:
                                  	// Si el contador de minutos es de 59, hacer un overflow
-000699 2d04                      	MOV		R16, ALARM_MINUTES
-00069a 330b                      	CPI		R16, 59
-00069b f019                      	BREQ	OVERFLOW_ALARMA_MINUTOS
+00069c 2d04                      	MOV		R16, ALARM_MINUTES
+00069d 330b                      	CPI		R16, 59
+00069e f019                      	BREQ	OVERFLOW_ALARMA_MINUTOS
                                  	
                                  	// Si no, incrementar contador y salir
-00069c 9443                      	INC		ALARM_MINUTES
-00069d 940c 0701                 	JMP		END_PC_ISR
+00069f 9443                      	INC		ALARM_MINUTES
+0006a0 940c 0704                 	JMP		END_PC_ISR
                                  
                                  OVERFLOW_ALARMA_MINUTOS:
-00069f 2444                      	CLR		ALARM_MINUTES
+0006a2 2444                      	CLR		ALARM_MINUTES
                                  	
                                  INCREMENTAR_ALARMA_HORAS:
                                  	// Si son las 23 horas hacer overflow
-0006a0 2d05                      	MOV		R16, ALARM_HOUR
-0006a1 3107                      	CPI		R16, 23
-0006a2 f019                      	BREQ	OVERFLOW_ALARMA_HORAS
+0006a3 2d05                      	MOV		R16, ALARM_HOUR
+0006a4 3107                      	CPI		R16, 23
+0006a5 f019                      	BREQ	OVERFLOW_ALARMA_HORAS
                                  
                                  	// Si no, incrementar contador y salir
-0006a3 9453                      	INC		ALARM_HOUR
-0006a4 940c 0701                 	JMP		END_PC_ISR
+0006a6 9453                      	INC		ALARM_HOUR
+0006a7 940c 0704                 	JMP		END_PC_ISR
                                  
                                  OVERFLOW_ALARMA_HORAS:
-0006a6 2444                      	CLR		ALARM_MINUTES
-0006a7 940c 0701                 	JMP		END_PC_ISR
+0006a9 2444                      	CLR		ALARM_MINUTES
+0006aa 940c 0704                 	JMP		END_PC_ISR
                                  
                                  
                                  // DECREMENTAR CONTADOR --------------------------------------------
                                  DECREMENTAR_PC:
                                  	// CambiarMinutos (S1)
-0006a9 fd80                      	SBRC	STATE, S1B	
-0006aa 940c 06bb                 	JMP		DECREMENTAR_MINUTOS
+0006ac fd80                      	SBRC	STATE, S1B	
+0006ad 940c 06be                 	JMP		DECREMENTAR_MINUTOS
                                  
                                  	// CambiarHoras (S2)
-0006ac fd81                      	SBRC	STATE, S2B
-0006ad 940c 06c3                 	JMP		DECREMENTAR_HORAS
+0006af fd81                      	SBRC	STATE, S2B
+0006b0 940c 06c6                 	JMP		DECREMENTAR_HORAS
                                  		
                                  	// CambiarDias (S4)
-0006af fd83                      	SBRC	STATE, S4B
-0006b0 940c 06cb                 	JMP		DECREMENTAR_DIAS
+0006b2 fd83                      	SBRC	STATE, S4B
+0006b3 940c 06ce                 	JMP		DECREMENTAR_DIAS
                                  
                                  	// CambiarMeses (S5)
-0006b2 fd84                      	SBRC	STATE, S5B
-0006b3 940c 06e7                 	JMP		DECREMENTAR_MESES
+0006b5 fd84                      	SBRC	STATE, S5B
+0006b6 940c 06ea                 	JMP		DECREMENTAR_MESES
                                  
                                  	// AlarmaMinutos (S7)
-0006b5 fd86                      	SBRC	STATE, S7B
-0006b6 c038                      	RJMP	DECREMENTAR_ALARMA_MINUTOS
+0006b8 fd86                      	SBRC	STATE, S7B
+0006b9 c038                      	RJMP	DECREMENTAR_ALARMA_MINUTOS
                                  
                                  	// AlarmaHoras (S8)
-0006b7 fd87                      	SBRC	STATE, S8B
-0006b8 c03e                      	RJMP	DECREMENTAR_ALARMA_HORAS
+0006ba fd87                      	SBRC	STATE, S8B
+0006bb c03e                      	RJMP	DECREMENTAR_ALARMA_HORAS
                                  
                                  	// Si no es ni fu ni fa salir
-0006b9 940c 0701                 	JMP		END_PC_ISR
+0006bc 940c 0704                 	JMP		END_PC_ISR
                                  
                                  
                                  DECREMENTAR_MINUTOS:
                                  	// Comparar con cero
-0006bb 3020                      	CPI		MINUTE_COUNT, 0
-0006bc f019                      	BREQ	UNDERFLOW_MINUTOS
+0006be 3020                      	CPI		MINUTE_COUNT, 0
+0006bf f019                      	BREQ	UNDERFLOW_MINUTOS
                                  	
                                  	// Si el contador de minutos es mayor a cero, restar uno
-0006bd 952a                      	DEC		MINUTE_COUNT
-0006be 940c 0701                 	JMP		END_PC_ISR
+0006c0 952a                      	DEC		MINUTE_COUNT
+0006c1 940c 0704                 	JMP		END_PC_ISR
                                  
                                  // Si el contador de minutos da cero, cargar 59 y disminuir horas
                                  UNDERFLOW_MINUTOS:
-0006c0 e32b                      	LDI		MINUTE_COUNT, 59
-0006c1 940c 06c3                 	JMP		DECREMENTAR_HORAS
+0006c3 e32b                      	LDI		MINUTE_COUNT, 59
+0006c4 940c 06c6                 	JMP		DECREMENTAR_HORAS
                                  
                                  // Si el número de horas no es cero, disminuir
                                  DECREMENTAR_HORAS:
                                  	// Comparar con cero
-0006c3 3030                      	CPI		HOUR_COUNT, 0
-0006c4 f019                      	BREQ	UNDERFLOW_HORAS
+0006c6 3030                      	CPI		HOUR_COUNT, 0
+0006c7 f019                      	BREQ	UNDERFLOW_HORAS
                                  	
                                  	// Si el contador es mayor a cero, restar uno
-0006c5 953a                      	DEC		HOUR_COUNT
-0006c6 940c 0701                 	JMP		END_PC_ISR
+0006c8 953a                      	DEC		HOUR_COUNT
+0006c9 940c 0704                 	JMP		END_PC_ISR
                                  	
                                  UNDERFLOW_HORAS:
-0006c8 e137                      	LDI		HOUR_COUNT, 23
-0006c9 940c 06cb                 	JMP		DECREMENTAR_DIAS
+0006cb e137                      	LDI		HOUR_COUNT, 23
+0006cc 940c 06ce                 	JMP		DECREMENTAR_DIAS
                                  
                                  DECREMENTAR_DIAS:
                                  	// Comparar con uno
-0006cb 3041                      	CPI		DAY_COUNT, 1
-0006cc f019                      	BREQ	UNDERFLOW_DIAS
+0006ce 3041                      	CPI		DAY_COUNT, 1
+0006cf f019                      	BREQ	UNDERFLOW_DIAS
                                  	
                                  	// Si el contador es mayor a cero, restar uno
-0006cd 954a                      	DEC		DAY_COUNT
-0006ce 940c 0701                 	JMP		END_PC_ISR
+0006d0 954a                      	DEC		DAY_COUNT
+0006d1 940c 0704                 	JMP		END_PC_ISR
                                  
                                  // Esta función se parece mucho a COMPARACION_DIAS_MESES_INC pero al revés
                                  UNDERFLOW_DIAS:	
                                  	// Verificar si el mes es marzo (Underflow a febrero)
-0006d0 3053                      	CPI		MONTH_COUNT, 3
-0006d1 f079                      	BREQ	UNDERFLOW_MARZO
+0006d3 3053                      	CPI		MONTH_COUNT, 3
+0006d4 f079                      	BREQ	UNDERFLOW_MARZO
                                  
                                  	// Meses precedidos por meses de 31 días
-0006d2 3051                          CPI		MONTH_COUNT, 1			; Enero (underflow a Diciembre)
-0006d3 f079                          BREQ	UNDERFLOW_A_MES31
-0006d4 3052                      	CPI		MONTH_COUNT, 2			; Febrero (underflow a Enero)
-0006d5 f069                          BREQ	UNDERFLOW_A_MES31
-0006d6 3054                      	CPI		MONTH_COUNT, 4			; Abril (underflow a Marzo)
-0006d7 f059                          BREQ	UNDERFLOW_A_MES31
-0006d8 3056                          CPI		MONTH_COUNT, 6			; Junio (underflow a Mayo)
-0006d9 f049                          BREQ	UNDERFLOW_A_MES31
-0006da 3058                      	CPI		MONTH_COUNT, 8			; Agosto (underflow a Junio)
-0006db f039                          BREQ	UNDERFLOW_A_MES31
-0006dc 3059                          CPI		MONTH_COUNT, 9			; Septiembre (underflow a Agosto)
-0006dd f029                          BREQ	UNDERFLOW_A_MES31
-0006de 305b                          CPI		MONTH_COUNT, 11			; Noviembre (underflow a Octubre)
-0006df f019                          BREQ	UNDERFLOW_A_MES31
+0006d5 3051                          CPI		MONTH_COUNT, 1			; Enero (underflow a Diciembre)
+0006d6 f079                          BREQ	UNDERFLOW_A_MES31
+0006d7 3052                      	CPI		MONTH_COUNT, 2			; Febrero (underflow a Enero)
+0006d8 f069                          BREQ	UNDERFLOW_A_MES31
+0006d9 3054                      	CPI		MONTH_COUNT, 4			; Abril (underflow a Marzo)
+0006da f059                          BREQ	UNDERFLOW_A_MES31
+0006db 3056                          CPI		MONTH_COUNT, 6			; Junio (underflow a Mayo)
+0006dc f049                          BREQ	UNDERFLOW_A_MES31
+0006dd 3058                      	CPI		MONTH_COUNT, 8			; Agosto (underflow a Junio)
+0006de f039                          BREQ	UNDERFLOW_A_MES31
+0006df 3059                          CPI		MONTH_COUNT, 9			; Septiembre (underflow a Agosto)
+0006e0 f029                          BREQ	UNDERFLOW_A_MES31
+0006e1 305b                          CPI		MONTH_COUNT, 11			; Noviembre (underflow a Octubre)
+0006e2 f019                          BREQ	UNDERFLOW_A_MES31
                                  
                                  	// Meses precedidos por meses de 30 días
-0006e0 c004                      	RJMP	UNDERFLOW_A_MES30
+0006e3 c004                      	RJMP	UNDERFLOW_A_MES30
                                  
                                  // Si el mes donde ocurre el overflow es marzo, cargar a 28 días
                                  UNDERFLOW_MARZO:
-0006e1 e14c                          LDI		DAY_COUNT, 28
-0006e2 c004                          RJMP	DECREMENTAR_MESES
+0006e4 e14c                          LDI		DAY_COUNT, 28
+0006e5 c004                          RJMP	DECREMENTAR_MESES
                                  
                                  // Si el mes donde ocurre el overflow es enero, febrero, abril, junio, septiembre y noviembre
                                  UNDERFLOW_A_MES31:
-0006e3 e14f                          LDI		DAY_COUNT, 31
-0006e4 c002                      	RJMP	DECREMENTAR_MESES
+0006e6 e14f                          LDI		DAY_COUNT, 31
+0006e7 c002                      	RJMP	DECREMENTAR_MESES
                                  
                                  // Underflow a un mes de 30 días
                                  UNDERFLOW_A_MES30:
-0006e5 e14e                          LDI		DAY_COUNT, 30
-0006e6 c000                      	RJMP	DECREMENTAR_MESES
+0006e8 e14e                          LDI		DAY_COUNT, 30
+0006e9 c000                      	RJMP	DECREMENTAR_MESES
                                  
                                  // INCREMENTAR MES
                                  DECREMENTAR_MESES:
                                  	// Comparar con uno
-0006e7 3051                      	CPI		MONTH_COUNT, 1
-0006e8 f019                      	BREQ	UNDERFLOW_MESES
+0006ea 3051                      	CPI		MONTH_COUNT, 1
+0006eb f019                      	BREQ	UNDERFLOW_MESES
                                  
                                  	// Si el mes no es enero, decrementar contador
-0006e9 955a                      	DEC		MONTH_COUNT
-0006ea 940c 0701                 	JMP		END_PC_ISR
+0006ec 955a                      	DEC		MONTH_COUNT
+0006ed 940c 0704                 	JMP		END_PC_ISR
                                  
                                  UNDERFLOW_MESES:
-0006ec e05c                      	LDI		MONTH_COUNT, 12
-0006ed 940c 0701                 	JMP		END_PC_ISR
+0006ef e05c                      	LDI		MONTH_COUNT, 12
+0006f0 940c 0704                 	JMP		END_PC_ISR
                                  
                                  DECREMENTAR_ALARMA_MINUTOS:
                                  	// Si el contador de minutos es 0, hacer un underflow
-0006ef 2d04                      	MOV		R16, ALARM_MINUTES
-0006f0 3000                      	CPI		R16, 0
-0006f1 f019                      	BREQ	UNDERFLOW_ALARMA_MINUTOS
+0006f2 2d04                      	MOV		R16, ALARM_MINUTES
+0006f3 3000                      	CPI		R16, 0
+0006f4 f019                      	BREQ	UNDERFLOW_ALARMA_MINUTOS
                                  	
                                  	// Si no, decrementar contador y salir
-0006f2 944a                      	DEC		ALARM_MINUTES
-0006f3 940c 0701                 	JMP		END_PC_ISR
+0006f5 944a                      	DEC		ALARM_MINUTES
+0006f6 940c 0704                 	JMP		END_PC_ISR
                                  
                                  UNDERFLOW_ALARMA_MINUTOS:
-0006f5 e30b                      	LDI		R16, 59
-0006f6 2e40                      	MOV		ALARM_MINUTES, R16
+0006f8 e30b                      	LDI		R16, 59
+0006f9 2e40                      	MOV		ALARM_MINUTES, R16
                                  	
                                  DECREMENTAR_ALARMA_HORAS:
                                  	// Si son las 0 horas hacer underflow
-0006f7 2d05                      	MOV		R16, ALARM_HOUR
-0006f8 3000                      	CPI		R16, 0
-0006f9 f019                      	BREQ	UNDERFLOW_ALARMA_HORAS
+0006fa 2d05                      	MOV		R16, ALARM_HOUR
+0006fb 3000                      	CPI		R16, 0
+0006fc f019                      	BREQ	UNDERFLOW_ALARMA_HORAS
                                  
                                  	// Si no, decrementar contador y salir
-0006fa 945a                      	DEC		ALARM_HOUR
-0006fb 940c 0701                 	JMP		END_PC_ISR
+0006fd 945a                      	DEC		ALARM_HOUR
+0006fe 940c 0704                 	JMP		END_PC_ISR
                                  
                                  UNDERFLOW_ALARMA_HORAS:
-0006fd e107                      	LDI		R16, 23
-0006fe 2e50                      	MOV		ALARM_HOUR, R16
-0006ff 940c 0701                 	JMP		END_PC_ISR
+000700 e107                      	LDI		R16, 23
+000701 2e50                      	MOV		ALARM_HOUR, R16
+000702 940c 0704                 	JMP		END_PC_ISR
                                  
                                  END_PC_ISR:
-000701 910f                      	POP		R16
-000702 bf0f                      	OUT		SREG, R16
-000703 910f                      	POP		R16
-000704 9518                      	RETI
+000704 910f                      	POP		R16
+000705 bf0f                      	OUT		SREG, R16
+000706 910f                      	POP		R16
+000707 9518                      	RETI
                                  
                                  
                                  // --------------------------------------------------------------------
@@ -1996,140 +2003,143 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  // --------------------------------------------------------------------
                                  // CAMBIO DE SEÑAL DE MULTIPLEXADO
                                  TIMER0_ISR:
-000705 930f                      	PUSH	R16
-000706 b70f                      	IN		R16, SREG
-000707 930f                      	PUSH	R16
+000708 930f                      	PUSH	R16
+000709 b70f                      	IN		R16, SREG
+00070a 930f                      	PUSH	R16
                                  
                                  	// Reiniciar el TIMER0
-000708 940e 05fa                 	CALL	RESET_TIMER0
+00070b 940e 05fa                 	CALL	RESET_TIMER0
                                  
                                  	// Rotar señal de multiplexado a la izquierda (Valor Inicial 0X01)
-00070a 1f77                      	ROL		MUX_SIGNAL
+00070d 1f77                      	ROL		MUX_SIGNAL
                                  
                                  	// Aplicar máscara para PC1-PC3
-00070b 707f                      	ANDI	MUX_SIGNAL, 0X0F
+00070e 707f                      	ANDI	MUX_SIGNAL, 0X0F
                                  
                                  	// Si el bit de encendido desaparece, reiniciar
-00070c 3070                      	CPI		MUX_SIGNAL, 0
-00070d f411                      	BRNE	END_T0_ISR
-00070e e071                      	LDI		MUX_SIGNAL, 0X01
-00070f c000                      	RJMP	END_T0_ISR
+00070f 3070                      	CPI		MUX_SIGNAL, 0
+000710 f411                      	BRNE	END_T0_ISR
+000711 e071                      	LDI		MUX_SIGNAL, 0X01
+000712 c000                      	RJMP	END_T0_ISR
                                  
                                  
                                  END_T0_ISR:
-000710 910f                      	POP		R16
-000711 bf0f                      	OUT		SREG, R16
-000712 910f                      	POP		R16
-000713 9518                      	RETI
+000713 910f                      	POP		R16
+000714 bf0f                      	OUT		SREG, R16
+000715 910f                      	POP		R16
+000716 9518                      	RETI
                                  
                                  // --------------------------------------------------------------------
                                  // | RUTINAS DE INTERRUPCIÓN CON TIMER1								  |
                                  // --------------------------------------------------------------------
                                  TIMER1_ISR:
-000714 930f                      	PUSH	R16
-000715 b70f                      	IN		R16, SREG
-000716 930f                      	PUSH	R16
+000717 930f                      	PUSH	R16
+000718 b70f                      	IN		R16, SREG
+000719 930f                      	PUSH	R16
                                  
                                  	// Reiniciar el TIMER1
-000717 940e 0602                 	CALL	RESET_TIMER1
+00071a 940e 0602                 	CALL	RESET_TIMER1
                                  
                                  	// INCREMENTO DE MINUTOS
-000719 9523                      	INC		MINUTE_COUNT
+00071c 9523                      	INC		MINUTE_COUNT
                                  
                                  // - ESTAS SUBRUTINAS SE COMPARTEN CON LAS SUBRUTINAS DE PC ----------------------
                                  COMPARACION_MINUTOS_HORAS_INC:	
                                  	// Si MINUTE_COUNT es mayor o igual a 60, limpiarlo e incrementar HOUR_COUNT
-00071a 332c                      	CPI		MINUTE_COUNT, 60
-00071b f048                      	BRLO	INTERMEDIATE_JUMP1
-00071c 2722                      	CLR		MINUTE_COUNT
-00071d 9533                      	INC		HOUR_COUNT
+00071d 332c                      	CPI		MINUTE_COUNT, 60
+00071e f048                      	BRLO	INTERMEDIATE_JUMP1
+00071f 2722                      	CLR		MINUTE_COUNT
+000720 9533                      	INC		HOUR_COUNT
                                  
                                  COMPARACION_HORAS_DIAS_INC:
                                  	// INCREMENTO DE DÍAS
                                  	// Si HOUR_COUNT es mayor o igual a 24, limpiarlo e incrementar DAY_COUNT
-00071e 3138                      	CPI		HOUR_COUNT, 24
-00071f f028                      	BRLO	INTERMEDIATE_JUMP1
-000720 2733                      	CLR		HOUR_COUNT
-000721 9543                      	INC		DAY_COUNT
+000721 3138                      	CPI		HOUR_COUNT, 24
+000722 f028                      	BRLO	INTERMEDIATE_JUMP1
+000723 2733                      	CLR		HOUR_COUNT
+000724 9543                      	INC		DAY_COUNT
                                  	
                                  	// Si el número de días no excede 28 (El mínimo para cambiar de mes) salir para
                                  	// evitar comparaciones innecesarias
-000722 314c                      	CPI		DAY_COUNT, 28
-000723 f008                      	BRLO	INTERMEDIATE_JUMP1
+000725 314c                      	CPI		DAY_COUNT, 28
+000726 f008                      	BRLO	INTERMEDIATE_JUMP1
                                  		
                                  	// Pero, si ese no es el caso
                                  	// "Goku eta vaina se puso seria"
                                  	// Si el número de días excede 29, incrementar mes (Muchas comparaciones)
-000724 c002                      	RJMP	COMPARACION_DIAS_MESES_INC
+000727 c002                      	RJMP	COMPARACION_DIAS_MESES_INC
                                  
                                  INTERMEDIATE_JUMP1:
-000725 940c 0744                 	JMP	END_T1PC_ISR
+000728 940c 0747                 	JMP	END_T1PC_ISR
                                  
                                  	
                                  // COMPARACIONES PARA INCREMENTO DE MESES
                                  COMPARACION_DIAS_MESES_INC:	
                                  	// Verificar si el mes es febrero
-000727 3052                      	CPI		MONTH_COUNT, 2
-000728 f049                      	BREQ	FEBRERO
+00072a 3052                      	CPI		MONTH_COUNT, 2
+00072b f049                      	BREQ	FEBRERO
                                  
                                  	// Meses con 30 días (abril, junio, septiembre, noviembre)
-000729 3054                          CPI		MONTH_COUNT, 4
-00072a f059                          BREQ	MESES_30
-00072b 3056                          CPI		MONTH_COUNT, 6
-00072c f049                          BREQ	MESES_30
-00072d 3059                          CPI		MONTH_COUNT, 9
-00072e f039                          BREQ	MESES_30
-00072f 305b                          CPI		MONTH_COUNT, 11
-000730 f029                          BREQ	MESES_30
+00072c 3054                          CPI		MONTH_COUNT, 4
+00072d f059                          BREQ	MESES_30
+00072e 3056                          CPI		MONTH_COUNT, 6
+00072f f049                          BREQ	MESES_30
+000730 3059                          CPI		MONTH_COUNT, 9
+000731 f039                          BREQ	MESES_30
+000732 305b                          CPI		MONTH_COUNT, 11
+000733 f029                          BREQ	MESES_30
                                  
                                  	// Si el mes no es de 30 días y no es febrero, es de 31 días
-000731 c008                      	RJMP	MESES_31
+000734 c008                      	RJMP	MESES_31
                                  
                                  FEBRERO:
                                  	// Verificar si el contador de días pasa de 28
-000732 314d                      	CPI		DAY_COUNT, 29
-000733 f080                          BRLO	END_T1PC_ISR
+000735 314d                      	CPI		DAY_COUNT, 29
+000736 f080                          BRLO	END_T1PC_ISR
                                  
                                  	// Si han pasado más de 28 días, reiniciar contador de días
-000734 e041                          LDI		DAY_COUNT, 1
-000735 c008                          RJMP	INCREMENTAR_MES
+000737 e041                          LDI		DAY_COUNT, 1
+000738 c008                          RJMP	INCREMENTAR_MES
                                  
                                  MESES_30:
                                  	// Verificar si el contador de días pasa de 30
-000736 314f                      	CPI		DAY_COUNT, 31
-000737 f060                          BRLO	END_T1PC_ISR
+000739 314f                      	CPI		DAY_COUNT, 31
+00073a f060                          BRLO	END_T1PC_ISR
                                  
                                  	// Si han pasado más de 30 días, reiniciar contador de días
-000738 e041                          LDI		DAY_COUNT, 1
-000739 c004                      	RJMP	INCREMENTAR_MES
+00073b e041                          LDI		DAY_COUNT, 1
+00073c c004                      	RJMP	INCREMENTAR_MES
                                  
                                  MESES_31:
                                  	// Verificar si el contador pasa de 31
-00073a 3240                      	CPI		DAY_COUNT, 32
-00073b f040                          BRLO	END_T1PC_ISR
+00073d 3240                      	CPI		DAY_COUNT, 32
+00073e f040                          BRLO	END_T1PC_ISR
                                  
                                  	// Si han pasado más de 31 días, reiniciar contadores de días
-00073c e041                          LDI		DAY_COUNT, 1
-00073d c000                      	RJMP	INCREMENTAR_MES
+00073f e041                          LDI		DAY_COUNT, 1
+000740 c000                      	RJMP	INCREMENTAR_MES
                                  
                                  // INCREMENTAR MES
                                  INCREMENTAR_MES:
                                  	// INCREMENTAR contador de meses
-00073e 9553                      	INC		MONTH_COUNT
-00073f 305d                      	CPI		MONTH_COUNT, 13
-000740 f018                      	BRLO	END_T1PC_ISR
+000741 9553                      	INC		MONTH_COUNT
+000742 305d                      	CPI		MONTH_COUNT, 13
+000743 f018                      	BRLO	END_T1PC_ISR
                                  
                                  	// Si las unidades de meses excenden 12, reiniciar ambos contadores
-000741 305c                      	CPI		MONTH_COUNT, 12
-000742 e051                      	LDI		MONTH_COUNT, 1
-000743 c000                      	RJMP	END_T1PC_ISR
+000744 305c                      	CPI		MONTH_COUNT, 12
+000745 e051                      	LDI		MONTH_COUNT, 1
+000746 c000                      	RJMP	END_T1PC_ISR
                                  
                                  // Terminar Rutina de Interrupción
                                  END_T1PC_ISR:
-000744 910f                      	POP		R16
-000745 bf0f                      	OUT		SREG, R16
-000746 910f                      	POP		R16
-000747 9518                      	RETI
+                                 	// Después de haber cambiado hora y minutos, ver si hay que prender la alarma
+000747 940e 0760                 	CALL	ALARMA_INTERRUPT
+                                 
+000749 910f                      	POP		R16
+00074a bf0f                      	OUT		SREG, R16
+00074b 910f                      	POP		R16
+00074c 9518                      	RETI
                                  
                                  
                                  
@@ -2137,30 +2147,30 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  // | RUTINAS DE INTERRUPCIÓN CON TIMER2								  |
                                  // --------------------------------------------------------------------
                                  TIMER2_ISR:
-000748 930f                      	PUSH	R16
-000749 b70f                      	IN		R16, SREG
-00074a 930f                      	PUSH	R16
+00074d 930f                      	PUSH	R16
+00074e b70f                      	IN		R16, SREG
+00074f 930f                      	PUSH	R16
                                  
                                  	// Reiniciar el TIMER2
-00074b 940e 060f                 	CALL	RESET_TIMER2
+000750 940e 060f                 	CALL	RESET_TIMER2
                                  
                                  	// INCREMENTAR en 1 la máscara de OUTPORTD para modos de cambio de contadores
-00074d 9433                      	INC		CHANGE_COUNTER_MASK ; INCREMENTAR en 1 el último bit de este registro
+000752 9433                      	INC		CHANGE_COUNTER_MASK ; INCREMENTAR en 1 el último bit de este registro
                                  
                                  	// Incrementar el contador auxiliar hasta 6
-00074e 9423                      	INC		T2_AUX_COUNT
+000753 9423                      	INC		T2_AUX_COUNT
                                  	
                                  	// Leer T2_AUX_COUNT y comparar
-00074f 2d02                      	MOV		R16, T2_AUX_COUNT 
-000750 3006                      	CPI		R16, 6
-000751 f028                      	BRLO	END_T2_ISR
+000754 2d02                      	MOV		R16, T2_AUX_COUNT 
+000755 3006                      	CPI		R16, 6
+000756 f028                      	BRLO	END_T2_ISR
                                  
                                  	// Si el contador rebasa 6, reiniciar y alternar el bit PD7
-000752 2422                      	CLR		T2_AUX_COUNT		; Guardar el reinicio del contador
-000753 b10b                      	IN		R16, PORTD			; Leer estado actual de PORTD
-000754 e810                      	LDI		R17, (1 << PD7)
-000755 2701                          EOR		R16, R17			; Alternar bit PD7 (D7)
-000756 b90b                          OUT		PORTD, R16			; Escribir nuevo estado
+000757 2422                      	CLR		T2_AUX_COUNT		; Guardar el reinicio del contador
+000758 b10b                      	IN		R16, PORTD			; Leer estado actual de PORTD
+000759 e810                      	LDI		R17, (1 << PD7)
+00075a 2701                          EOR		R16, R17			; Alternar bit PD7 (D7)
+00075b b90b                          OUT		PORTD, R16			; Escribir nuevo estado
                                  
                                  /*
                                  NOTA:
@@ -2171,10 +2181,28 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  
                                  // Terminar Rutina de Interrupción
                                  END_T2_ISR:
-000757 910f                      	POP		R16
-000758 bf0f                      	OUT		SREG, R16
-000759 910f                      	POP		R16
-00075a 9518                      	RETI
+00075c 910f                      	POP		R16
+00075d bf0f                      	OUT		SREG, R16
+00075e 910f                      	POP		R16
+00075f 9518                      	RETI
+                                 
+                                 // --------------------------------------------------------------------
+                                 // | SUBRUTINAS_COMPARTIDAS											  |
+                                 // --------------------------------------------------------------------
+                                 // RUTINA NO DE INTERRUPCIÓN QUE PODRÍA FULMINARSE
+                                 ALARMA_INTERRUPT:
+000760 1524                      	CP		MINUTE_COUNT, ALARM_MINUTES
+000761 f009                      	BREQ	ALARMA_COMPARAR_HORAS
+000762 9508                      	RET
+                                 
+                                 ALARMA_COMPARAR_HORAS:
+000763 1535                      	CP		HOUR_COUNT, ALARM_HOUR
+000764 f411                      	BRNE	NO_ACTIVAR_ALARMA
+000765 9a2d                      	SBI		PORTB, PB5
+000766 9508                      	RET
+                                 
+                                 NO_ACTIVAR_ALARMA:
+000767 9508                      	RET
 
 
 RESOURCE USE INFORMATION
@@ -2192,9 +2220,9 @@ counted separately from r26..r31 here.
 .dseg memory usage only counts static data declared with .byte
 
 "ATmega328P" register use summary:
-x  :   0 y  :   0 z  :   3 r0 :   0 r1 :   0 r2 :   3 r3 :  14 r4 :  10 
-r5 :   8 r6 :   0 r7 :   0 r8 :   0 r9 :   0 r10:   0 r11:   0 r12:   0 
-r13:   0 r14:   0 r15:   0 r16:  92 r17:   4 r18:  10 r19:  10 r20:  17 
+x  :   0 y  :   0 z  :   3 r0 :   0 r1 :   0 r2 :   3 r3 :  14 r4 :  11 
+r5 :   9 r6 :   0 r7 :   0 r8 :   0 r9 :   0 r10:   0 r11:   0 r12:   0 
+r13:   0 r14:   0 r15:   0 r16:  92 r17:   4 r18:  11 r19:  11 r20:  17 
 r21:  23 r22:  22 r23:  15 r24:  63 r25:  21 r26:   0 r27:   0 r28:   0 
 r29:   0 r30:   5 r31:   2 
 Registers used: 17 out of 35 (48.6%)
@@ -2202,29 +2230,29 @@ Registers used: 17 out of 35 (48.6%)
 "ATmega328P" instruction use summary:
 .lds  :   0 .sts  :   0 adc   :   0 add   :   2 adiw  :   0 and   :   0 
 andi  :   1 asr   :   0 bclr  :   0 bld   :   1 brbc  :   0 brbs  :   0 
-brcc  :   0 brcs  :   0 break :   0 breq  :  56 brge  :   0 brhc  :   0 
+brcc  :   0 brcs  :   0 break :   0 breq  :  57 brge  :   0 brhc  :   0 
 brhs  :   0 brid  :   0 brie  :   0 brlo  :   8 brlt  :   0 brmi  :   0 
-brne  :   3 brpl  :   0 brsh  :   0 brtc  :   0 brts  :   0 brvc  :   0 
-brvs  :   0 bset  :   0 bst   :   1 call  :   9 cbi   :  22 cbr   :   0 
+brne  :   4 brpl  :   0 brsh  :   0 brtc  :   0 brts  :   0 brvc  :   0 
+brvs  :   0 bset  :   0 bst   :   1 call  :  10 cbi   :  20 cbr   :   0 
 clc   :   0 clh   :   0 cli   :   0 cln   :   0 clr   :  10 cls   :   0 
-clt   :   0 clv   :   0 clz   :   0 com   :   0 cp    :   0 cpc   :   0 
+clt   :   0 clv   :   0 clz   :   0 com   :   0 cp    :   2 cpc   :   0 
 cpi   :  68 cpse  :   0 dec   :   6 eor   :   1 fmul  :   0 fmuls :   0 
-fmulsu:   0 icall :   0 ijmp  :   0 in    :   6 inc   :  13 jmp   :  37 
+fmulsu:   0 icall :   0 ijmp  :   0 in    :   6 inc   :  13 jmp   :  39 
 ld    :   0 ldd   :   0 ldi   :  70 lds   :   0 lpm   :   6 lsl   :   0 
 lsr   :   0 mov   :  21 movw  :   0 mul   :   0 muls  :   0 mulsu :   0 
 neg   :   0 nop   :   0 or    :   0 ori   :   0 out   :  17 pop   :   8 
-push  :   8 rcall :   0 ret   :  22 reti  :   4 rjmp  :  21 rol   :   1 
-ror   :   0 sbc   :   0 sbci  :   0 sbi   :   7 sbic  :   0 sbis  :   4 
+push  :   8 rcall :   0 ret   :  25 reti  :   4 rjmp  :  21 rol   :   1 
+ror   :   0 sbc   :   0 sbci  :   0 sbi   :   8 sbic  :   0 sbis  :   5 
 sbiw  :   0 sbr   :   0 sbrc  :  40 sbrs  :   6 sec   :   0 seh   :   0 
 sei   :   1 sen   :   0 ser   :   0 ses   :   0 set   :   0 sev   :   0 
 sez   :   0 sleep :   0 spm   :   0 st    :   0 std   :   0 sts   :  12 
 sub   :   0 subi  :   0 swap  :   0 tst   :   0 wdr   :   0 
-Instructions used: 32 out of 113 (28.3%)
+Instructions used: 33 out of 113 (29.2%)
 
 "ATmega328P" memory use summary [bytes]:
 Segment   Begin    End      Code   Data   Used    Size   Use%
 ---------------------------------------------------------------
-[.cseg] 0x000000 0x000eb6   1094    122   1216   32768   3.7%
+[.cseg] 0x000000 0x000ed0   1120    122   1242   32768   3.8%
 [.dseg] 0x000100 0x000100      0      0      0    2048   0.0%
 [.eseg] 0x000000 0x000000      0      0      0    1024   0.0%
 
