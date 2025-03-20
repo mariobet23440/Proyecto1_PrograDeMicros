@@ -134,6 +134,12 @@ el periodo entre desbordamientos del TIMER1.
 // Registros inferiores (d < 16)
 .def	T2_AUX_COUNT = R2
 .def	CHANGE_COUNTER_MASK = R3						; Máscara para PORTD
+.def	ALARM_MINUTES = R4								; Registro de contador de minutos de alarma
+.def	ALARM_HOUR = R5									; Registro de contador de horas de alarma
+
+// La alarma suena a las ALARM_HOUR horas y los ALARM_MINUTE minutos
+// Por default, la alarma es audible sólo durante el minuto exacto para el que está programada.
+// O bien se puede apagar automáticamente al presionar nuevamente PB0
 
 // Registros auxiliares (16 <= d <= 25)
 .def	MINUTE_COUNT = R18
@@ -221,20 +227,16 @@ START:
 	SEI
 
 	// - INICIALIZACIÓN DE REGISTROS -
+	CLR		ALARM_HOUR
+	CLR		ALARM_MINUTES
 	CLR		CHANGE_COUNTER_MASK
 	LDI		MUX_SIGNAL, 0X01
-	;CLR		MINUTE_COUNT
-	;CLR		HOUR_COUNT
-	;LDI		DAY_COUNT, 1
-	;LDI		MONTH_COUNT,1
+	CLR		MINUTE_COUNT
+	CLR		HOUR_COUNT
+	LDI		DAY_COUNT, 1
+	LDI		MONTH_COUNT,1
 	LDI		STATE, 1										; Registro de Estado
-	LDI		NEXT_STATE, 1									; Registro de Estado Siguiente
-
-	// PRUEBA DE DISPLAYS (QUITAR) !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	LDI		MINUTE_COUNT, 0X01
-	LDI		HOUR_COUNT, 0X02
-	LDI		DAY_COUNT, 0X03
-	LDI		MONTH_COUNT,0X04
+	LDI		NEXT_STATE, 0									; Registro de Estado Siguiente
 
 
 // --------------------------------------------------------------------
@@ -333,15 +335,15 @@ MODE_DISPLAY43:
 
 	// ModoAlarma (S6)
 	CPI		STATE, S6
-	BREQ	SHOW_HOURS
+	BREQ	SHOW_ALARM_HOURS
 
-	// AlarmaMinutos (S7)
+	// CambiarAlarmaMinutos (S7)
 	CPI		STATE, S7
-	BREQ	SHOW_HOURS
+	BREQ	SHOW_ALARM_HOURS
 
-	// AlarmaHoras (S8)
+	// CambiarAlarmaHoras (S8)
 	CPI		STATE, S8
-	BREQ	SHOW_HOURS
+	BREQ	CHANGE_ALARM_HOURS
 	RET
 
 // Modos MostrarHora (S0) y CambiarMinutos (S1)
@@ -368,6 +370,19 @@ CHANGING_MONTHS:
 	LDI		OUT_PORTD, 60
 	SBRS	CHANGE_COUNTER_MASK, CCMB
 	MOV		OUT_PORTD, MONTH_COUNT
+	RET
+
+// Modos ModoAlarma (S6) y AlarmaMinutos (S7)
+SHOW_ALARM_HOURS:
+	MOV		OUT_PORTD, ALARM_HOUR
+	RET
+
+// Modo CambiarHoras (S2)
+CHANGE_ALARM_HOURS:
+	SBRC	CHANGE_COUNTER_MASK, CCMB
+	LDI		OUT_PORTD, 60
+	SBRS	CHANGE_COUNTER_MASK, CCMB
+	MOV		OUT_PORTD, ALARM_HOUR
 	RET
 
 // Salida a displays 2 Y 1
@@ -398,15 +413,15 @@ MODE_DISPLAY21:
 
 	// ModoAlarma (S6)
 	CPI		STATE, S6
-	BREQ	SHOW_MINUTES
+	BREQ	SHOW_ALARM_MINUTES
 
 	// AlarmaMinutos (S7)
 	CPI		STATE, S7
-	BREQ	SHOW_MINUTES
+	BREQ	CHANGE_ALARM_MINUTES
 
 	// AlarmaHoras (S8)
 	CPI		STATE, S8
-	BREQ	SHOW_MINUTES
+	BREQ	SHOW_ALARM_MINUTES
 	RET
 
 // Modos MostrarHora (S0) y CambiarHoras (S2)
@@ -433,6 +448,19 @@ CHANGING_DAYS:
 	LDI		OUT_PORTD, 60
 	SBRS	CHANGE_COUNTER_MASK, CCMB
 	MOV		OUT_PORTD, DAY_COUNT
+	RET
+
+// Modos MostrarHora (S0) y CambiarHoras (S2)
+SHOW_ALARM_MINUTES:
+	MOV		OUT_PORTD, ALARM_MINUTES
+	RET
+
+// Modo CambiarMinutos (S1)
+CHANGE_ALARM_MINUTES:
+	SBRC	CHANGE_COUNTER_MASK, CCMB
+	LDI		OUT_PORTD, 60
+	SBRS	CHANGE_COUNTER_MASK, CCMB
+	MOV		OUT_PORTD, ALARM_MINUTES
 	RET
 
 // --------------------------------------------------------------------
@@ -520,7 +548,7 @@ RESET_TIMER2:
 // --------------------------------------------------------------------
 // | RUTINAS DE INTERRUPCIÓN POR CAMBIO EN PINES 	(Verificado)	  |															  |
 // --------------------------------------------------------------------
-// MÁQUINA DE ESTADOS FINITOS
+// MÁQUINA DE ESTADOS FINITOS -----------------------------------------
 PCINT_ISR:
 	PUSH	R16
 	IN		R16, SREG
@@ -547,6 +575,9 @@ PCINT_ISR:
 	
 // Lógica de Siguiente estado si se presiona PB0
 NEXT_STATE_LOGIC_PB0:
+	// Primero determinar si es necesario apagar la alarma
+	CALL	DESACTIVAR_ALARMA_BOTON
+
 	// CambiarMinutos (S1) -> MostrarHora (S0)
 	SBRC	STATE, S1B
 	LDI		NEXT_STATE, S0
@@ -639,6 +670,7 @@ COPY_NEXT_STATE:
 	MOV		STATE, NEXT_STATE
 	JMP		ENCENDER_LEDS_MODO
 
+// ENCENDER_LEDS_MODO -----------------------------------------
 ENCENDER_LEDS_MODO:
 	// MostrarHoras (S0)
 	CPI		STATE, S0
@@ -646,11 +678,11 @@ ENCENDER_LEDS_MODO:
 
 	// CambiarMinutos (S1)
 	CPI		STATE, S1
-	BREQ	PRUEBA_ALARMA			; ENCENDER_LED_HORA
+	BREQ	ENCENDER_LED_HORA
 
 	// CambiarHoras (S2)
 	CPI		STATE, S2
-	BREQ	PRUEBA_ALARMA			; ENCENDER_LED_HORA
+	BREQ	ENCENDER_LED_HORA
 
 	// MostrarFecha (S3)
 	CPI		STATE, S3
@@ -658,11 +690,11 @@ ENCENDER_LEDS_MODO:
 
 	// CambiarDias (S4)
 	CPI		STATE, S4
-	BREQ	PRUEBA_ALARMA			; ENCENDER_LED_FECHA
+	BREQ	ENCENDER_LED_FECHA
 
 	// CambiarMeses (S5)
 	CPI		STATE, S5
-	BREQ	PRUEBA_ALARMA			; ENCENDER_LED_FECHA
+	BREQ	ENCENDER_LED_FECHA
 
 	// Modo Alarma (S6)
 	CPI		STATE, S6
@@ -670,11 +702,11 @@ ENCENDER_LEDS_MODO:
 
 	// AlarmaMinutos (S7)
 	CPI		STATE, S7
-	BREQ	PRUEBA_ALARMA			; ENCENDER_LED_ALARMA
+	BREQ	ENCENDER_LED_ALARMA
 
 	// AlarmaHoras (S8)
 	CPI		STATE, S8
-	BREQ	PRUEBA_ALARMA			; ENCENDER_LED_ALARMA
+	BREQ	ENCENDER_LED_ALARMA
 
 	// Salir (Si es que algo falla, por alguna razón)
 	JMP		END_PC_ISR
@@ -701,10 +733,7 @@ ENCENDER_LED_ALARMA:
 	CBI		PORTB, PB5		; Quitar esta línea en el programa final
 	JMP		END_PC_ISR
 
-// Quitar esto en el programa final
-PRUEBA_ALARMA:
-	SBI		PORTB, PB5
-
+// INCREMENTAR CONTADOR --------------------------------------------
 // Incrementar contador con PC (Vamos a reciclar algunas subrutinas)
 INCREMENTAR_PC:	
 	// CambiarMinutos (S1)
@@ -727,8 +756,48 @@ INCREMENTAR_PC:
 
 	// CambiarMeses (S5)
 	SBRC	STATE, S5B
-	JMP		AUMENTAR_MES
+	JMP		INCREMENTAR_MES
 
+	// AlarmaMinutos (S7)
+	SBRC	STATE, S7B
+	RJMP	INCREMENTAR_ALARMA_MINUTOS
+
+	// AlarmaHoras (S8)
+	SBRC	STATE, S8B
+	RJMP	INCREMENTAR_ALARMA_HORAS
+	
+	// Si no es ni fu ni fa salir
+	JMP		END_PC_ISR
+
+INCREMENTAR_ALARMA_MINUTOS:
+	// Si el contador de minutos es de 59, hacer un overflow
+	MOV		R16, ALARM_MINUTES
+	CPI		R16, 59
+	BREQ	OVERFLOW_ALARMA_MINUTOS
+	
+	// Si no, incrementar contador y salir
+	INC		ALARM_MINUTES
+	JMP		END_PC_ISR
+
+OVERFLOW_ALARMA_MINUTOS:
+	CLR		ALARM_MINUTES
+	
+INCREMENTAR_ALARMA_HORAS:
+	// Si son las 23 horas hacer overflow
+	MOV		R16, ALARM_HOUR
+	CPI		R16, 23
+	BREQ	OVERFLOW_ALARMA_HORAS
+
+	// Si no, incrementar contador y salir
+	INC		ALARM_HOUR
+	JMP		END_PC_ISR
+
+OVERFLOW_ALARMA_HORAS:
+	CLR		ALARM_MINUTES
+	JMP		END_PC_ISR
+
+
+// DECREMENTAR CONTADOR --------------------------------------------
 DECREMENTAR_PC:
 	// CambiarMinutos (S1)
 	SBRC	STATE, S1B	
@@ -745,6 +814,18 @@ DECREMENTAR_PC:
 	// CambiarMeses (S5)
 	SBRC	STATE, S5B
 	JMP		DECREMENTAR_MESES
+
+	// AlarmaMinutos (S7)
+	SBRC	STATE, S7B
+	RJMP	DECREMENTAR_ALARMA_MINUTOS
+
+	// AlarmaHoras (S8)
+	SBRC	STATE, S8B
+	RJMP	DECREMENTAR_ALARMA_HORAS
+
+	// Si no es ni fu ni fa salir
+	JMP		END_PC_ISR
+
 
 DECREMENTAR_MINUTOS:
 	// Comparar con cero
@@ -823,20 +904,48 @@ UNDERFLOW_A_MES30:
     LDI		DAY_COUNT, 30
 	RJMP	DECREMENTAR_MESES
 
-// AUMENTAR MES
+// INCREMENTAR MES
 DECREMENTAR_MESES:
 	// Comparar con uno
 	CPI		MONTH_COUNT, 1
-	BRLO	UNDERFLOW_MESES
+	BREQ	UNDERFLOW_MESES
 
 	// Si el mes no es enero, decrementar contador
 	DEC		MONTH_COUNT
-	RJMP	END_PC_ISR
+	JMP		END_PC_ISR
 
 UNDERFLOW_MESES:
 	LDI		MONTH_COUNT, 12
-	RJMP	END_PC_ISR
+	JMP		END_PC_ISR
+
+DECREMENTAR_ALARMA_MINUTOS:
+	// Si el contador de minutos es 0, hacer un underflow
+	MOV		R16, ALARM_MINUTES
+	CPI		R16, 0
+	BREQ	UNDERFLOW_ALARMA_MINUTOS
 	
+	// Si no, decrementar contador y salir
+	DEC		ALARM_MINUTES
+	JMP		END_PC_ISR
+
+UNDERFLOW_ALARMA_MINUTOS:
+	LDI		R16, 59
+	MOV		ALARM_HOUR, R16
+	
+DECREMENTAR_ALARMA_HORAS:
+	// Si son las 0 horas hacer underflow
+	MOV		R16, ALARM_HOUR
+	CPI		R16, 0
+	BREQ	UNDERFLOW_ALARMA_HORAS
+
+	// Si no, decrementar contador y salir
+	DEC		ALARM_HOUR
+	JMP		END_PC_ISR
+
+UNDERFLOW_ALARMA_HORAS:
+	LDI		R16, 23
+	MOV		ALARM_HOUR, R16
+	JMP		END_PC_ISR
 
 END_PC_ISR:
 	POP		R16
@@ -890,9 +999,8 @@ TIMER1_ISR:
 	// INCREMENTO DE MINUTOS
 	INC		MINUTE_COUNT
 
-// - ESTAS SUBRUTINAS SE COMPARTEN CON LAS SUBRUTINAS DE PC -
+// - ESTAS SUBRUTINAS SE COMPARTEN CON LAS SUBRUTINAS DE PC ----------------------
 COMPARACION_MINUTOS_HORAS_INC:	
-	// INCREMENTO DE HORAS
 	// Si MINUTE_COUNT es mayor o igual a 60, limpiarlo e incrementar HOUR_COUNT
 	CPI		MINUTE_COUNT, 60
 	BRLO	INTERMEDIATE_JUMP1
@@ -907,6 +1015,9 @@ COMPARACION_HORAS_DIAS_INC:
 	CLR		HOUR_COUNT
 	INC		DAY_COUNT
 
+	// Antes de incrementar días, determinar si es necesario activar la alarma
+	CALL	ACTIVAR_ALARMA		; Este es el único Call que hacemos dentro de las ISRs
+	
 	// Si el número de días no excede 28 (El mínimo para cambiar de mes) salir para
 	// evitar comparaciones innecesarias
 	CPI		DAY_COUNT, 28
@@ -947,7 +1058,7 @@ FEBRERO:
 
 	// Si han pasado más de 28 días, reiniciar contador de días
     LDI		DAY_COUNT, 1
-    RJMP	AUMENTAR_MES
+    RJMP	INCREMENTAR_MES
 
 MESES_30:
 	// Verificar si el contador de días pasa de 30
@@ -956,7 +1067,7 @@ MESES_30:
 
 	// Si han pasado más de 30 días, reiniciar contador de días
     LDI		DAY_COUNT, 1
-	RJMP	AUMENTAR_MES
+	RJMP	INCREMENTAR_MES
 
 MESES_31:
 	// Verificar si el contador pasa de 31
@@ -965,12 +1076,11 @@ MESES_31:
 
 	// Si han pasado más de 31 días, reiniciar contadores de días
     LDI		DAY_COUNT, 1
-	RJMP	AUMENTAR_MES
+	RJMP	INCREMENTAR_MES
 
-
-// AUMENTAR MES
-AUMENTAR_MES:
-	// Aumentar contador de meses
+// INCREMENTAR MES
+INCREMENTAR_MES:
+	// INCREMENTAR contador de meses
 	INC		MONTH_COUNT
 	CPI		MONTH_COUNT, 13
 	BRLO	END_T1PC_ISR
@@ -987,6 +1097,8 @@ END_T1PC_ISR:
 	POP		R16
 	RETI
 
+
+
 // --------------------------------------------------------------------
 // | RUTINAS DE INTERRUPCIÓN CON TIMER2								  |
 // --------------------------------------------------------------------
@@ -998,8 +1110,8 @@ TIMER2_ISR:
 	// Reiniciar el TIMER2
 	CALL	RESET_TIMER2
 
-	// Aumentar en 1 la máscara de OUTPORTD para modos de cambio de contadores
-	INC		CHANGE_COUNTER_MASK ; Aumentar en 1 el último bit de este registro
+	// INCREMENTAR en 1 la máscara de OUTPORTD para modos de cambio de contadores
+	INC		CHANGE_COUNTER_MASK ; INCREMENTAR en 1 el último bit de este registro
 
 	// Incrementar el contador auxiliar hasta 6
 	INC		T2_AUX_COUNT
@@ -1029,3 +1141,51 @@ END_T2_ISR:
 	OUT		SREG, R16
 	POP		R16
 	RETI
+
+// --------------------------------------------------------------------
+// | SUBRUTINAS COMPARTIDAS ENTRE ISRs								  |
+// --------------------------------------------------------------------
+// ACTIVAR ALARMA
+ACTIVAR_ALARMA:
+	// Determinar si las horas son las mismas
+	CP		HOUR_COUNT, ALARM_HOUR
+	IN		R16, SREG
+	SBRC	R16, SREG_Z
+	RET
+
+	// Determinar si los minutos son iguales
+	CP		MINUTE_COUNT, ALARM_MINUTES
+	IN		R16, SREG
+	SBRC	R16, SREG_Z
+	RET
+
+	// Si ambos son iguales, encender la alarma
+	SBI		PORTB, PB5
+	RET
+
+// DESACTIVAR ALARMA POR BOTÓN
+DESACTIVAR_ALARMA_BOTON:
+	// Determinar si la alarma estaba encendida
+	SBIS	PORTB, PB5
+	RET	
+	CBI		PORTB, PB5	
+	RET
+
+// DESACTIVAR ALARMA SI HA PASADO MÁS DE UN MINUTO
+DESACTIVAR_ALARMA_TIMER1:
+	// Determinar si las horas son las mismas
+	CP		HOUR_COUNT, ALARM_HOUR
+	IN		R16, SREG
+	SBRS	R16, SREG_Z
+	RET
+
+	// Determinar si los minutos son iguales
+	CP		MINUTE_COUNT, ALARM_MINUTES
+	IN		R16, SREG
+	SBRS	R16, SREG_Z
+	RET
+
+	// Si ambos son diferentes, apagar la alarma
+	CBI		PORTB, PB5
+	RET
+	
