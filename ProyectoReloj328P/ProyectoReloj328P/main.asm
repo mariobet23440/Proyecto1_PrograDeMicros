@@ -575,9 +575,6 @@ PCINT_ISR:
 	
 // Lógica de Siguiente estado si se presiona PB0
 NEXT_STATE_LOGIC_PB0:
-	// Primero determinar si es necesario apagar la alarma
-	CALL	DESACTIVAR_ALARMA_BOTON
-
 	// CambiarMinutos (S1) -> MostrarHora (S0)
 	SBRC	STATE, S1B
 	LDI		NEXT_STATE, S0
@@ -930,7 +927,7 @@ DECREMENTAR_ALARMA_MINUTOS:
 
 UNDERFLOW_ALARMA_MINUTOS:
 	LDI		R16, 59
-	MOV		ALARM_HOUR, R16
+	MOV		ALARM_MINUTES, R16
 	
 DECREMENTAR_ALARMA_HORAS:
 	// Si son las 0 horas hacer underflow
@@ -1014,9 +1011,6 @@ COMPARACION_HORAS_DIAS_INC:
 	BRLO	INTERMEDIATE_JUMP1
 	CLR		HOUR_COUNT
 	INC		DAY_COUNT
-
-	// Antes de incrementar días, determinar si es necesario activar la alarma
-	CALL	ACTIVAR_ALARMA		; Este es el único Call que hacemos dentro de las ISRs
 	
 	// Si el número de días no excede 28 (El mínimo para cambiar de mes) salir para
 	// evitar comparaciones innecesarias
@@ -1141,51 +1135,4 @@ END_T2_ISR:
 	OUT		SREG, R16
 	POP		R16
 	RETI
-
-// --------------------------------------------------------------------
-// | SUBRUTINAS COMPARTIDAS ENTRE ISRs								  |
-// --------------------------------------------------------------------
-// ACTIVAR ALARMA
-ACTIVAR_ALARMA:
-	// Determinar si las horas son las mismas
-	CP		HOUR_COUNT, ALARM_HOUR
-	IN		R16, SREG
-	SBRC	R16, SREG_Z
-	RET
-
-	// Determinar si los minutos son iguales
-	CP		MINUTE_COUNT, ALARM_MINUTES
-	IN		R16, SREG
-	SBRC	R16, SREG_Z
-	RET
-
-	// Si ambos son iguales, encender la alarma
-	SBI		PORTB, PB5
-	RET
-
-// DESACTIVAR ALARMA POR BOTÓN
-DESACTIVAR_ALARMA_BOTON:
-	// Determinar si la alarma estaba encendida
-	SBIS	PORTB, PB5
-	RET	
-	CBI		PORTB, PB5	
-	RET
-
-// DESACTIVAR ALARMA SI HA PASADO MÁS DE UN MINUTO
-DESACTIVAR_ALARMA_TIMER1:
-	// Determinar si las horas son las mismas
-	CP		HOUR_COUNT, ALARM_HOUR
-	IN		R16, SREG
-	SBRS	R16, SREG_Z
-	RET
-
-	// Determinar si los minutos son iguales
-	CP		MINUTE_COUNT, ALARM_MINUTES
-	IN		R16, SREG
-	SBRS	R16, SREG_Z
-	RET
-
-	// Si ambos son diferentes, apagar la alarma
-	CBI		PORTB, PB5
-	RET
 	
