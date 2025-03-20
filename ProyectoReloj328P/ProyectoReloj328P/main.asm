@@ -22,6 +22,14 @@ VERSIÓN 2 - MULTIPLEXADO + MÁQUINA DE ESTADOS
 - ¿Qué se esperaría? Los cuatro displays muestran un número cualquiera al mismo tiempo.
   Si se presiona uno de los botones de cambio de modo los LEDs cambian. Sin MODE_OUTPUT
 - ¿Funciona? Sí. Las transiciones entre LEDs y la alarma de prueba funcionan bien
+
+VERSIÓN 3 - MOSTRAR SALIDAS SEGÚN MODO Y LOOKUP TABLE
+- Todavía no configuramos el incremento automático de unidades de tiempo (Con TIMER1). 
+  Introducimos los registros MINUTE_COUNT, HOUR_COUNT, DAY_COUNT, MONTH_COUNT. La idea es que
+  el programa muestre cada número en el display correspondiente.
++ AQUÍ SE OBSERVARON PROBLEMAS. Los dos displays muestran el indicador de días.
++ La lookup table parece funcionar correctamente (Muestra los números correctos).
++ Se procederá a revisar el selector de salidas según modo
 */
 
 // --------------------------------------------------------------------
@@ -72,13 +80,42 @@ VERSIÓN 2 - MULTIPLEXADO + MÁQUINA DE ESTADOS
 
 ; Nótese que S0 = 0x00 y todos los bits están apagados, sus comparaciones son diferentes
 
+// Constantes de Lookup Table
+.equ	T0 = 0b1110111
+.equ	T1 = 0b1000100
+.equ	T2 = 0b1101011
+.equ	T3 = 0b1101101
+.equ	T4 = 0b1011100
+.equ	T5 = 0b0111101
+.equ	T6 = 0b0111111
+.equ	T7 = 0b1100100
+.equ	T8 = 0b1111111
+.equ	T9 = 0b1111100 
+
 // R16 y R17 quedan como registros temporales
 
 // Registros auxiliares
+.def	MINUTE_COUNT = R18
+.def	HOUR_COUNT = R19
+.def	DAY_COUNT = R20
+.def	MONTH_COUNT = R21
 .def	OUT_PORTD = R22									; Salida de PORTD
 .def	MUX_SIGNAL = R23								; Salida de PORTC (Multiplexado de señal)
 .def	STATE = R24										; Registro de Estado
 .def	NEXT_STATE = R25								; Registro de estado siguiente
+
+// --------------------------------------------------------------------
+// | TABLAS															  |
+// --------------------------------------------------------------------
+// Definir la tabla en la memoria FLASH (Números del 1 al 10 en display de 7 segmentos)
+.org	0x500
+TABLA:
+	.db T0, T0, T0, T1, T0, T2, T0, T3, T0, T4, T0, T5, T0, T6, T0, T7, T0, T8, T0, T9
+	.db T1, T0, T1, T1, T1, T2, T1, T3, T1, T4, T1, T5, T1, T6, T1, T7, T1, T8, T1, T9
+	.db T2, T0, T2, T1, T2, T2, T2, T3, T2, T4, T2, T5, T2, T6, T2, T7, T2, T8, T2, T9
+	.db T3, T0, T3, T1, T3, T2, T3, T3, T3, T4, T3, T5, T3, T6, T3, T7, T3, T8, T3, T9
+	.db T4, T0, T4, T1, T4, T2, T4, T3, T4, T4, T4, T5, T4, T6, T4, T7, T4, T8, T4, T9
+	.db T5, T0, T5, T1, T5, T2, T5, T3, T5, T4, T5, T5, T5, T6, T5, T7, T5, T8, T5, T9
 
 // --------------------------------------------------------------------
 // | SETUP															  |
@@ -90,6 +127,12 @@ START:
 	OUT		SPL, R16
 	LDI		R16, HIGH(RAMEND)
 	OUT		SPH, R16
+
+	// - INICIALIZACIÓN DE TABLAS -
+	LDI		ZL, LOW(TABLA << 1)
+	LDI		ZH, HIGH(TABLA << 1)
+	LPM		OUT_PORTD, Z
+	OUT		PORTD, OUT_PORTD
 	
 	// - CONFIGURACIÓN DE PINES -
 	// Configurar los pines PB1-PB4 de PORTB como entradas (Habilitar pull-ups)
@@ -133,12 +176,20 @@ START:
 
 	// - INICIALIZACIÓN DE REGISTROS -
 	LDI		MUX_SIGNAL, 0X01
+	;CLR		MINUTE_COUNT
+	;CLR		HOUR_COUNT
+	;LDI		DAY_COUNT, 1
+	;LDI		MONTH_COUNT,1
 	LDI		STATE, 1										; Registro de Estado
 	LDI		NEXT_STATE, 1									; Registro de Estado Siguiente
 
 	// PRUEBA DE DISPLAYS (QUITAR)
-	LDI		OUT_PORTD, 0X12
-	OUT		PORTD, OUT_PORTD
+	LDI		MINUTE_COUNT, 0X01
+	LDI		HOUR_COUNT, 0X02
+	LDI		DAY_COUNT, 0X03
+	LDI		MONTH_COUNT,0X04
+
+	
 
 
 // --------------------------------------------------------------------
@@ -147,6 +198,7 @@ START:
 MAINLOOP:
 	// Realizar multiplexado de señales a transistores
 	CALL	MULTIPLEXADO
+	CALL	MODE_OUTPUT
 	RJMP	MAINLOOP
 
 // --------------------------------------------------------------------
@@ -194,7 +246,151 @@ MUX_DISPLAY1:
 	RET
 
 // --------------------------------------------------------------------
-// | RUTINA NO DE INTERRUPCIÓN 2 - Reinicio de TIMER0				  |
+// | RUTINA NO DE INTERRUPCIÓN 2 - MODE_OUTPUT						  |
+// --------------------------------------------------------------------
+// CONFIGURACION DE MODOS (Escoger salidas)
+MODE_OUTPUT:
+	CPI		MUX_SIGNAL, 0X01
+	BREQ	MODE_DISPLAY43
+	CPI		MUX_SIGNAL, 0X02
+	BREQ	MODE_DISPLAY43
+	CPI		MUX_SIGNAL, 0X04
+	BREQ	MODE_DISPLAY21
+	CPI		MUX_SIGNAL, 0X08
+	BREQ	MODE_DISPLAY21
+
+// Salida a displays 4 y 3
+MODE_DISPLAY43:
+	// MostrarHoras (S0)
+	CPI		STATE, S0
+	BREQ	SHOW_HOURS
+
+	// CambiarMinutos (S1)
+	CPI		STATE, S1
+	BREQ	SHOW_HOURS
+
+	// CambiarHoras (S2)
+	CPI		STATE, S2
+	BREQ	SHOW_HOURS
+	
+	// MostrarFecha (S3)
+	CPI		STATE, S3
+	BREQ	SHOW_MONTH
+
+	// CambiarDia (S4)
+	CPI		STATE, S4
+	BREQ	SHOW_MONTH
+
+	// CambiarMes (S5)
+	CPI		STATE, S5
+	BREQ	SHOW_MONTH
+
+	// ModoAlarma (S6)
+	CPI		STATE, S6
+	BREQ	SHOW_HOURS
+
+	// AlarmaMinutos (S7)
+	CPI		STATE, S7
+	BREQ	SHOW_HOURS
+
+	// AlarmaHoras (S8)
+	CPI		STATE, S8
+	BREQ	SHOW_HOURS
+	RET
+
+SHOW_HOURS:
+	MOV		OUT_PORTD, HOUR_COUNT
+
+SHOW_MONTH:
+	MOV		OUT_PORTD, MONTH_COUNT
+
+// Salida a displays 2 Y 1
+MODE_DISPLAY21:
+	// MostrarHoras (S0)
+	CPI		STATE, S0
+	BREQ	SHOW_MINUTES
+
+	// CambiarMinutos (S1)
+	CPI		STATE, S1
+	BREQ	SHOW_MINUTES
+
+	// CambiarHoras (S2)
+	CPI		STATE, S2
+	BREQ	SHOW_MINUTES
+	
+	// MostrarFecha (S3)
+	CPI		STATE, S3
+	BREQ	SHOW_DAY
+
+	// CambiarDia (S4)
+	CPI		STATE, S4
+	BREQ	SHOW_DAY
+
+	// CambiarMes (S5)
+	CPI		STATE, S5
+	BREQ	SHOW_DAY
+
+	// ModoAlarma (S6)
+	CPI		STATE, S6
+	BREQ	SHOW_MINUTES
+
+	// AlarmaMinutos (S7)
+	CPI		STATE, S7
+	BREQ	SHOW_MINUTES
+
+	// AlarmaHoras (S8)
+	CPI		STATE, S8
+	BREQ	SHOW_MINUTES
+	RET
+
+SHOW_MINUTES:
+	MOV		OUT_PORTD, MINUTE_COUNT
+
+SHOW_DAY:
+	MOV		OUT_PORTD, DAY_COUNT
+
+
+// --------------------------------------------------------------------
+// | RUTINA NO DE INTERRUPCIÓN 3 - LOOKUP_TABLE						  |
+// --------------------------------------------------------------------
+
+// LOOKUP TABLE
+LOOKUP_TABLE:
+	// Guardar bit 7 de PORTD en el Bit T del SREG
+	IN		R17, PORTD
+	BST		R17, 7
+	
+	// Sacar dato de tabla
+	LDI		ZH, HIGH(TABLA<<1)
+	LDI		ZL, LOW(TABLA<<1)
+
+	// Obtener dirección de tabla (Duplicando OUT_PORTD)
+	MOV		R16, OUT_PORTD
+	ADD		R16, OUT_PORTD
+
+	// Incrementar puntero Z en 2*OUT_PORTD
+	ADD		ZL, R16
+
+	// Sacar el primer dígitooo
+	LPM		R16, Z
+	
+	// Si MUX_SIGNAL es 0x04 o 0x08 sacar el siguiente número
+	SBRC	MUX_SIGNAL, 1
+	INC		ZL
+	SBRC	MUX_SIGNAL, 3
+	INC		ZL
+	LPM		R16, Z
+
+	// Cargar bit de leds intermitentes
+	BLD		R16, 7
+
+	// Mostrar en PORTD
+	OUT		PORTD, R16
+
+	RET
+
+// --------------------------------------------------------------------
+// | RUTINA NO DE INTERRUPCIÓN 3 - Reinicio de TIMER0				  |
 // --------------------------------------------------------------------
 // Reiniciar Timer0
 RESET_TIMER0:

@@ -1,5 +1,5 @@
 
-AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm Wed Mar 19 17:46:48 2025
+AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm Wed Mar 19 17:58:22 2025
 
 [builtin](2): Including file 'C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\m328Pdef.inc'
 [builtin](2): Including file 'C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\m328Pdef.inc'
@@ -1007,7 +1007,12 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  VERSIÓN 2 - MULTIPLEXADO + MÁQUINA DE ESTADOS
                                  - ¿Qué se esperaría? Los cuatro displays muestran un número cualquiera al mismo tiempo.
                                    Si se presiona uno de los botones de cambio de modo los LEDs cambian. Sin MODE_OUTPUT
-                                 - ¿Funciona?
+                                 - ¿Funciona? Sí. Las transiciones entre LEDs y la alarma de prueba funcionan bien
+                                 
+                                 VERSIÓN 3 - MOSTRAR SALIDAS SEGÚN MODO Y LOOKUP TABLE
+                                 - Todavía no configuramos el incremento automático de unidades de tiempo (Con TIMER1). 
+                                   Introducimos los registros MINUTE_COUNT, HOUR_COUNT, DAY_COUNT, MONTH_COUNT. La idea es que
+                                   el programa muestre cada número en el display correspondiente.
                                  */
                                  
                                  // --------------------------------------------------------------------
@@ -1016,15 +1021,15 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  ; Iniciar el código
                                  .cseg		
                                  .org	0x0000
-000000 c020                      	RJMP	START
+000000 c53b                      	RJMP	START
                                  
                                  ; Interrupciones PIN CHANGE
                                  .org PCI0addr
-000006 c066                      	RJMP PCINT_ISR		; Vector de interrupción de Pin Change
+000006 c5cb                      	RJMP PCINT_ISR		; Vector de interrupción de Pin Change
                                  
                                  ; Interrupciones por overflow de TIMER0 (Modo Normal)
                                  .org OVF0addr				; Vector de interrupción para TIMER0_OVF
-000020 c0b3                          RJMP TIMER0_ISR			; Saltar a la rutina de interrupción
+000020 c618                          RJMP TIMER0_ISR			; Saltar a la rutina de interrupción
                                  
                                  // --------------------------------------------------------------------
                                  // | DEFINICIONES DE REGISTROS DE USO COMÚN Y CONSTANTES DE ASSEMBLER |
@@ -1058,13 +1063,96 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  
                                  ; Nótese que S0 = 0x00 y todos los bits están apagados, sus comparaciones son diferentes
                                  
+                                 // Constantes de Lookup Table
+                                 .equ	T0 = 0b1110111
+                                 .equ	T1 = 0b1000100
+                                 .equ	T2 = 0b1101011
+                                 .equ	T3 = 0b1101101
+                                 .equ	T4 = 0b1011100
+                                 .equ	T5 = 0b0111101
+                                 .equ	T6 = 0b0111111
+                                 .equ	T7 = 0b1100100
+                                 .equ	T8 = 0b1111111
+                                 .equ	T9 = 0b1111100 
+                                 
                                  // R16 y R17 quedan como registros temporales
                                  
                                  // Registros auxiliares
+                                 .def	MINUTE_COUNT = R18
+                                 .def	HOUR_COUNT = R19
+                                 .def	DAY_COUNT = R20
+                                 .def	MONTH_COUNT = R21
                                  .def	OUT_PORTD = R22									; Salida de PORTD
                                  .def	MUX_SIGNAL = R23								; Salida de PORTC (Multiplexado de señal)
                                  .def	STATE = R24										; Registro de Estado
                                  .def	NEXT_STATE = R25								; Registro de estado siguiente
+                                 
+                                 // --------------------------------------------------------------------
+                                 // | TABLAS															  |
+                                 // --------------------------------------------------------------------
+                                 // Definir la tabla en la memoria FLASH (Números del 1 al 10 en display de 7 segmentos)
+                                 .org	0x500
+                                 TABLA:
+000500 7777
+000501 4477
+000502 6b77
+000503 6d77
+000504 5c77
+000505 3d77
+000506 3f77
+000507 6477
+000508 7f77
+000509 7c77                      	.db T0, T0, T0, T1, T0, T2, T0, T3, T0, T4, T0, T5, T0, T6, T0, T7, T0, T8, T0, T9
+00050a 7744
+00050b 4444
+00050c 6b44
+00050d 6d44
+00050e 5c44
+00050f 3d44
+000510 3f44
+000511 6444
+000512 7f44
+000513 7c44                      	.db T1, T0, T1, T1, T1, T2, T1, T3, T1, T4, T1, T5, T1, T6, T1, T7, T1, T8, T1, T9
+000514 776b
+000515 446b
+000516 6b6b
+000517 6d6b
+000518 5c6b
+000519 3d6b
+00051a 3f6b
+00051b 646b
+00051c 7f6b
+00051d 7c6b                      	.db T2, T0, T2, T1, T2, T2, T2, T3, T2, T4, T2, T5, T2, T6, T2, T7, T2, T8, T2, T9
+00051e 776d
+00051f 446d
+000520 6b6d
+000521 6d6d
+000522 5c6d
+000523 3d6d
+000524 3f6d
+000525 646d
+000526 7f6d
+000527 7c6d                      	.db T3, T0, T3, T1, T3, T2, T3, T3, T3, T4, T3, T5, T3, T6, T3, T7, T3, T8, T3, T9
+000528 775c
+000529 445c
+00052a 6b5c
+00052b 6d5c
+00052c 5c5c
+00052d 3d5c
+00052e 3f5c
+00052f 645c
+000530 7f5c
+000531 7c5c                      	.db T4, T0, T4, T1, T4, T2, T4, T3, T4, T4, T4, T5, T4, T6, T4, T7, T4, T8, T4, T9
+000532 773d
+000533 443d
+000534 6b3d
+000535 6d3d
+000536 5c3d
+000537 3d3d
+000538 3f3d
+000539 643d
+00053a 7f3d
+00053b 7c3d                      	.db T5, T0, T5, T1, T5, T2, T5, T3, T5, T4, T5, T5, T5, T6, T5, T7, T5, T8, T5, T9
                                  
                                  // --------------------------------------------------------------------
                                  // | SETUP															  |
@@ -1072,60 +1160,73 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  START:
                                  	// - CONFIGURACIÓN DE LA PILA - 
                                  	// Hacemos que el puntero de la pila apunte hacia el final de la RAM
-000021 ef0f                      	LDI		R16, LOW(RAMEND)
-000022 bf0d                      	OUT		SPL, R16
-000023 e008                      	LDI		R16, HIGH(RAMEND)
-000024 bf0e                      	OUT		SPH, R16
+00053c ef0f                      	LDI		R16, LOW(RAMEND)
+00053d bf0d                      	OUT		SPL, R16
+00053e e008                      	LDI		R16, HIGH(RAMEND)
+00053f bf0e                      	OUT		SPH, R16
+                                 
+                                 	// - INICIALIZACIÓN DE TABLAS -
+000540 e0e0                      	LDI		ZL, LOW(TABLA << 1)
+000541 e0fa                      	LDI		ZH, HIGH(TABLA << 1)
+000542 9164                      	LPM		OUT_PORTD, Z
+000543 b96b                      	OUT		PORTD, OUT_PORTD
                                  	
                                  	// - CONFIGURACIÓN DE PINES -
                                  	// Configurar los pines PB1-PB4 de PORTB como entradas (Habilitar pull-ups)
-000025 e00f                      	LDI		R16, (1 << PB0) | (1 << PB1)  | (1 << PB2) | (1 << PB3)
-000026 b905                      	OUT		PORTB, R16
+000544 e00f                      	LDI		R16, (1 << PB0) | (1 << PB1)  | (1 << PB2) | (1 << PB3)
+000545 b905                      	OUT		PORTB, R16
                                  
                                  	// Configurar los pines PB4 y PB5 como salidas
-000027 e300                      	LDI		R16, (1 << PB4) | (1 << PB5)
-000028 b904                      	OUT		DDRB, R16
-000029 982d                      	CBI		PORTB, PB5
+000546 e300                      	LDI		R16, (1 << PB4) | (1 << PB5)
+000547 b904                      	OUT		DDRB, R16
+000548 982d                      	CBI		PORTB, PB5
                                  
                                  	// Configurar todos los pines de PORTC como salidas
-00002a ef0f                      	LDI		R16, 0XFF
-00002b b907                      	OUT		DDRC, R16
-00002c e000                      	LDI		R16, 0X00
-00002d b908                      	OUT		PORTC, R16
+000549 ef0f                      	LDI		R16, 0XFF
+00054a b907                      	OUT		DDRC, R16
+00054b e000                      	LDI		R16, 0X00
+00054c b908                      	OUT		PORTC, R16
                                  
                                  	// Configurar los pines de PORTD como salidas
-00002e ef0f                      	LDI		R16, 0XFF
-00002f b90a                      	OUT		DDRD, R16
-000030 ef0f                      	LDI		R16, 0XFF
-000031 b90b                      	OUT		PORTD, R16
+00054d ef0f                      	LDI		R16, 0XFF
+00054e b90a                      	OUT		DDRD, R16
+00054f ef0f                      	LDI		R16, 0XFF
+000550 b90b                      	OUT		PORTD, R16
                                  
                                  	// - CONFIGURACIÓN DEL RELOJ DE SISTEMA - (fclk = 1 MHz)
-000032 e800                      	LDI		R16, (1 << CLKPCE)
-000033 9300 0061                 	STS		CLKPR, R16
-000035 e004                      	LDI		R16, (1 << CLKPS2)
-000036 9300 0061                 	STS		CLKPR, R16
+000551 e800                      	LDI		R16, (1 << CLKPCE)
+000552 9300 0061                 	STS		CLKPR, R16
+000554 e004                      	LDI		R16, (1 << CLKPS2)
+000555 9300 0061                 	STS		CLKPR, R16
                                  	
                                  	// - HABILITACIÓN DE INTERRUPCIONES PC -
-000038 e001                      	LDI		R16, (1 << PCIE0)													// Habilitar interrupciones PC en PORTB
-000039 9300 0068                 	STS		PCICR, R16
-00003b e00f                      	LDI		R16, (1 << PCINT0) | (1 << PCINT1) | (1 << PCINT2) | (1 << PCINT3)	// Habilitar Interrupciones en PB0-PB3
-00003c 9300 006b                 	STS		PCMSK0, R16	
+000557 e001                      	LDI		R16, (1 << PCIE0)													// Habilitar interrupciones PC en PORTB
+000558 9300 0068                 	STS		PCICR, R16
+00055a e00f                      	LDI		R16, (1 << PCINT0) | (1 << PCINT1) | (1 << PCINT2) | (1 << PCINT3)	// Habilitar Interrupciones en PB0-PB3
+00055b 9300 006b                 	STS		PCMSK0, R16	
                                  
                                  	// - REINICIAR TIMERS Y HABILITAR INTERRUPCIONES POR OVERFLOWS DE TIMERS -
-00003e 940e 0065                 	CALL	RESET_TIMER0
+00055d 940e 05ca                 	CALL	RESET_TIMER0
                                  	
                                  	// - HABILITACIÓN DE INTERRUPCIONES GLOBALES -
-000040 9478                      	SEI
+00055f 9478                      	SEI
                                  
                                  	// - INICIALIZACIÓN DE REGISTROS -
-000041 e071                      	LDI		MUX_SIGNAL, 0X01
-000042 e081                      	LDI		STATE, 1										; Registro de Estado
-000043 e091                      	LDI		NEXT_STATE, 1									; Registro de Estado Siguiente
-                                 
+000560 e071                      	LDI		MUX_SIGNAL, 0X01
+                                 	;CLR		MINUTE_COUNT
+                                 	;CLR		HOUR_COUNT
+                                 	;LDI		DAY_COUNT, 1
+                                 	;LDI		MONTH_COUNT,1
+000561 e081                      	LDI		STATE, 1										; Registro de Estado
+000562 e091                      	LDI		NEXT_STATE, 1									; Registro de Estado Siguiente
                                  
                                  	// PRUEBA DE DISPLAYS (QUITAR)
-000044 e162                      	LDI		OUT_PORTD, 0X12
-000045 b96b                      	OUT		PORTD, OUT_PORTD
+000563 e021                      	LDI		MINUTE_COUNT, 0X01
+000564 e032                      	LDI		HOUR_COUNT, 0X02
+000565 e043                      	LDI		DAY_COUNT, 0X03
+000566 e054                      	LDI		MONTH_COUNT,0X04
+                                 
+                                 	
                                  
                                  
                                  // --------------------------------------------------------------------
@@ -1133,283 +1234,428 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  // --------------------------------------------------------------------
                                  MAINLOOP:
                                  	// Realizar multiplexado de señales a transistores
-000046 940e 0049                 	CALL	MULTIPLEXADO
-000048 cffd                      	RJMP	MAINLOOP
+000567 940e 056c                 	CALL	MULTIPLEXADO
+000569 940e 0588                 	CALL	MODE_OUTPUT
+00056b cffb                      	RJMP	MAINLOOP
                                  
                                  // --------------------------------------------------------------------
                                  // | RUTINA NO DE INTERRUPCIÓN 1 - MULTIPLEXADO						  |
                                  // --------------------------------------------------------------------
                                  // - ACTUALIZAR DISPLAYS -
                                  MULTIPLEXADO:
-000049 3071                      	CPI		MUX_SIGNAL, 0X01
-00004a f031                      	BREQ	MUX_DISPLAY4
-00004b 3072                      	CPI		MUX_SIGNAL, 0X02
-00004c f049                      	BREQ	MUX_DISPLAY3
-00004d 3074                      	CPI		MUX_SIGNAL, 0X04
-00004e f061                      	BREQ	MUX_DISPLAY2
-00004f 3078                      	CPI		MUX_SIGNAL, 0X08
-000050 f079                      	BREQ	MUX_DISPLAY1
+00056c 3071                      	CPI		MUX_SIGNAL, 0X01
+00056d f031                      	BREQ	MUX_DISPLAY4
+00056e 3072                      	CPI		MUX_SIGNAL, 0X02
+00056f f049                      	BREQ	MUX_DISPLAY3
+000570 3074                      	CPI		MUX_SIGNAL, 0X04
+000571 f061                      	BREQ	MUX_DISPLAY2
+000572 3078                      	CPI		MUX_SIGNAL, 0X08
+000573 f079                      	BREQ	MUX_DISPLAY1
                                  
                                  
                                  // ENCENDER DISPLAYS
                                  MUX_DISPLAY4:
-000051 9a40                      	SBI		PORTC, PC0
-000052 9841                      	CBI		PORTC, PC1
-000053 9842                      	CBI		PORTC, PC2
-000054 9843                      	CBI		PORTC, PC3
-000055 9508                      	RET
+000574 9a40                      	SBI		PORTC, PC0
+000575 9841                      	CBI		PORTC, PC1
+000576 9842                      	CBI		PORTC, PC2
+000577 9843                      	CBI		PORTC, PC3
+000578 9508                      	RET
                                  
                                  MUX_DISPLAY3:
-000056 9840                      	CBI		PORTC, PC0
-000057 9a41                      	SBI		PORTC, PC1
-000058 9842                      	CBI		PORTC, PC2
-000059 9843                      	CBI		PORTC, PC3
-00005a 9508                      	RET
+000579 9840                      	CBI		PORTC, PC0
+00057a 9a41                      	SBI		PORTC, PC1
+00057b 9842                      	CBI		PORTC, PC2
+00057c 9843                      	CBI		PORTC, PC3
+00057d 9508                      	RET
                                  
                                  MUX_DISPLAY2:
-00005b 9840                      	CBI		PORTC, PC0
-00005c 9841                      	CBI		PORTC, PC1
-00005d 9a42                      	SBI		PORTC, PC2
-00005e 9843                      	CBI		PORTC, PC3
-00005f 9508                      	RET
+00057e 9840                      	CBI		PORTC, PC0
+00057f 9841                      	CBI		PORTC, PC1
+000580 9a42                      	SBI		PORTC, PC2
+000581 9843                      	CBI		PORTC, PC3
+000582 9508                      	RET
                                  
                                  MUX_DISPLAY1:
-000060 9840                      	CBI		PORTC, PC0
-000061 9841                      	CBI		PORTC, PC1
-000062 9842                      	CBI		PORTC, PC2
-000063 9a43                      	SBI		PORTC, PC3
-000064 9508                      	RET
+000583 9840                      	CBI		PORTC, PC0
+000584 9841                      	CBI		PORTC, PC1
+000585 9842                      	CBI		PORTC, PC2
+000586 9a43                      	SBI		PORTC, PC3
+000587 9508                      	RET
                                  
                                  // --------------------------------------------------------------------
-                                 // | RUTINA NO DE INTERRUPCIÓN 2 - Reinicio de TIMER0				  |
+                                 // | RUTINA NO DE INTERRUPCIÓN 2 - MODE_OUTPUT						  |
+                                 // --------------------------------------------------------------------
+                                 // CONFIGURACION DE MODOS (Escoger salidas)
+                                 MODE_OUTPUT:
+000588 3071                      	CPI		MUX_SIGNAL, 0X01
+000589 f031                      	BREQ	MODE_DISPLAY43
+00058a 3072                      	CPI		MUX_SIGNAL, 0X02
+00058b f021                      	BREQ	MODE_DISPLAY43
+00058c 3074                      	CPI		MUX_SIGNAL, 0X04
+00058d f0b9                      	BREQ	MODE_DISPLAY21
+00058e 3078                      	CPI		MUX_SIGNAL, 0X08
+00058f f0a9                      	BREQ	MODE_DISPLAY21
+                                 
+                                 // Salida a displays 4 y 3
+                                 MODE_DISPLAY43:
+                                 	// MostrarHoras (S0)
+000590 3080                      	CPI		STATE, S0
+000591 f089                      	BREQ	SHOW_HOURS
+                                 
+                                 	// CambiarMinutos (S1)
+000592 3081                      	CPI		STATE, S1
+000593 f079                      	BREQ	SHOW_HOURS
+                                 
+                                 	// CambiarHoras (S2)
+000594 3082                      	CPI		STATE, S2
+000595 f069                      	BREQ	SHOW_HOURS
+                                 	
+                                 	// MostrarFecha (S3)
+000596 3084                      	CPI		STATE, S3
+000597 f061                      	BREQ	SHOW_MONTH
+                                 
+                                 	// CambiarDia (S4)
+000598 3088                      	CPI		STATE, S4
+000599 f051                      	BREQ	SHOW_MONTH
+                                 
+                                 	// CambiarMes (S5)
+00059a 3180                      	CPI		STATE, S5
+00059b f041                      	BREQ	SHOW_MONTH
+                                 
+                                 	// ModoAlarma (S6)
+00059c 3280                      	CPI		STATE, S6
+00059d f029                      	BREQ	SHOW_HOURS
+                                 
+                                 	// AlarmaMinutos (S7)
+00059e 3480                      	CPI		STATE, S7
+00059f f019                      	BREQ	SHOW_HOURS
+                                 
+                                 	// AlarmaHoras (S8)
+0005a0 3880                      	CPI		STATE, S8
+0005a1 f009                      	BREQ	SHOW_HOURS
+0005a2 9508                      	RET
+                                 
+                                 SHOW_HOURS:
+0005a3 2f63                      	MOV		OUT_PORTD, HOUR_COUNT
+                                 
+                                 SHOW_MONTH:
+0005a4 2f65                      	MOV		OUT_PORTD, MONTH_COUNT
+                                 
+                                 // Salida a displays 2 Y 1
+                                 MODE_DISPLAY21:
+                                 	// MostrarHoras (S0)
+0005a5 3080                      	CPI		STATE, S0
+0005a6 f089                      	BREQ	SHOW_MINUTES
+                                 
+                                 	// CambiarMinutos (S1)
+0005a7 3081                      	CPI		STATE, S1
+0005a8 f079                      	BREQ	SHOW_MINUTES
+                                 
+                                 	// CambiarHoras (S2)
+0005a9 3082                      	CPI		STATE, S2
+0005aa f069                      	BREQ	SHOW_MINUTES
+                                 	
+                                 	// MostrarFecha (S3)
+0005ab 3084                      	CPI		STATE, S3
+0005ac f061                      	BREQ	SHOW_DAY
+                                 
+                                 	// CambiarDia (S4)
+0005ad 3088                      	CPI		STATE, S4
+0005ae f051                      	BREQ	SHOW_DAY
+                                 
+                                 	// CambiarMes (S5)
+0005af 3180                      	CPI		STATE, S5
+0005b0 f041                      	BREQ	SHOW_DAY
+                                 
+                                 	// ModoAlarma (S6)
+0005b1 3280                      	CPI		STATE, S6
+0005b2 f029                      	BREQ	SHOW_MINUTES
+                                 
+                                 	// AlarmaMinutos (S7)
+0005b3 3480                      	CPI		STATE, S7
+0005b4 f019                      	BREQ	SHOW_MINUTES
+                                 
+                                 	// AlarmaHoras (S8)
+0005b5 3880                      	CPI		STATE, S8
+0005b6 f009                      	BREQ	SHOW_MINUTES
+0005b7 9508                      	RET
+                                 
+                                 SHOW_MINUTES:
+0005b8 2f62                      	MOV		OUT_PORTD, MINUTE_COUNT
+                                 
+                                 SHOW_DAY:
+0005b9 2f64                      	MOV		OUT_PORTD, DAY_COUNT
+                                 
+                                 
+                                 // --------------------------------------------------------------------
+                                 // | RUTINA NO DE INTERRUPCIÓN 3 - LOOKUP_TABLE						  |
+                                 // --------------------------------------------------------------------
+                                 
+                                 // LOOKUP TABLE
+                                 LOOKUP_TABLE:
+                                 	// Guardar bit 7 de PORTD en el Bit T del SREG
+0005ba b11b                      	IN		R17, PORTD
+0005bb fb17                      	BST		R17, 7
+                                 	
+                                 	// Sacar dato de tabla
+0005bc e0fa                      	LDI		ZH, HIGH(TABLA<<1)
+0005bd e0e0                      	LDI		ZL, LOW(TABLA<<1)
+                                 
+                                 	// Obtener dirección de tabla (Duplicando OUT_PORTD)
+0005be 2f06                      	MOV		R16, OUT_PORTD
+0005bf 0f06                      	ADD		R16, OUT_PORTD
+                                 
+                                 	// Incrementar puntero Z en 2*OUT_PORTD
+0005c0 0fe0                      	ADD		ZL, R16
+                                 
+                                 	// Sacar el primer dígitooo
+0005c1 9104                      	LPM		R16, Z
+                                 	
+                                 	// Si MUX_SIGNAL es 0x04 o 0x08 sacar el siguiente número
+0005c2 fd71                      	SBRC	MUX_SIGNAL, 1
+0005c3 95e3                      	INC		ZL
+0005c4 fd73                      	SBRC	MUX_SIGNAL, 3
+0005c5 95e3                      	INC		ZL
+0005c6 9104                      	LPM		R16, Z
+                                 
+                                 	// Cargar bit de leds intermitentes
+0005c7 f907                      	BLD		R16, 7
+                                 
+                                 	// Mostrar en PORTD
+0005c8 b90b                      	OUT		PORTD, R16
+                                 
+0005c9 9508                      	RET
+                                 
+                                 // --------------------------------------------------------------------
+                                 // | RUTINA NO DE INTERRUPCIÓN 3 - Reinicio de TIMER0				  |
                                  // --------------------------------------------------------------------
                                  // Reiniciar Timer0
                                  RESET_TIMER0:
                                  	// - PRESCALER Y VALOR INICIAL -
-000065 e003                      	LDI     R16, PRESCALER0
-000066 bd05                          OUT     TCCR0B, R16
-000067 ee0c                          LDI     R16, TIMER_START0
-000068 bd06                          OUT     TCNT0, R16
+0005ca e003                      	LDI     R16, PRESCALER0
+0005cb bd05                          OUT     TCCR0B, R16
+0005cc ee0c                          LDI     R16, TIMER_START0
+0005cd bd06                          OUT     TCNT0, R16
                                  
                                  	// - HABILITACIÓN DE INTERRUPCIONES POR OVERFLOW EN TIMER0 -
-000069 e001                      	LDI		R16, (1 << TOIE0)
-00006a 9300 006e                 	STS		TIMSK0, R16
-00006c 9508                      	RET
+0005ce e001                      	LDI		R16, (1 << TOIE0)
+0005cf 9300 006e                 	STS		TIMSK0, R16
+0005d1 9508                      	RET
                                  
                                  // --------------------------------------------------------------------
                                  // | RUTINAS DE INTERRUPCIÓN POR CAMBIO EN PINES					  |															  |
                                  // --------------------------------------------------------------------
                                  PCINT_ISR:
-00006d 930f                      	PUSH	R16
-00006e b70f                      	IN		R16, SREG
-00006f 930f                      	PUSH	R16
+0005d2 930f                      	PUSH	R16
+0005d3 b70f                      	IN		R16, SREG
+0005d4 930f                      	PUSH	R16
                                  
                                  	// Cambiar Estados con PB0
-000070 9b18                      	SBIS	PINB, PB0
-000071 940c 0078                 	JMP		NEXT_STATE_LOGIC_PB0
+0005d5 9b18                      	SBIS	PINB, PB0
+0005d6 940c 05dd                 	JMP		NEXT_STATE_LOGIC_PB0
                                  
                                  	// Cambiar Estados con PB1
-000073 9b19                      	SBIS	PINB, PB1
-000074 940c 0091                 	JMP		NEXT_STATE_LOGIC_PB1
+0005d8 9b19                      	SBIS	PINB, PB1
+0005d9 940c 05f6                 	JMP		NEXT_STATE_LOGIC_PB1
                                  	
                                  	// Si no se detecta nada, ir al final
-000076 940c 00d0                 	JMP		END_PC_ISR
+0005db 940c 0635                 	JMP		END_PC_ISR
                                  	
                                  // Lógica de Siguiente estado si se presiona PB0
                                  NEXT_STATE_LOGIC_PB0:
                                  	// CambiarMinutos (S1) -> MostrarHora (S0)
-000078 fd80                      	SBRC	STATE, S1B
-000079 e090                      	LDI		NEXT_STATE, S0
+0005dd fd80                      	SBRC	STATE, S1B
+0005de e090                      	LDI		NEXT_STATE, S0
                                  
                                  	// CambiarHoras (S2) -> MostrarHora (S0)
-00007a fd81                      	SBRC	STATE, S2B
-00007b e090                      	LDI		NEXT_STATE, S0
+0005df fd81                      	SBRC	STATE, S2B
+0005e0 e090                      	LDI		NEXT_STATE, S0
                                  
                                  	// MostrarFecha (S3) -> ModoAlarma (S6)
-00007c fd82                      	SBRC	STATE, S3B
-00007d e290                      	LDI		NEXT_STATE, S6
+0005e1 fd82                      	SBRC	STATE, S3B
+0005e2 e290                      	LDI		NEXT_STATE, S6
                                  
                                  	// CambiarDías (S4) -> MostrarFecha (S3)
-00007e fd83                      	SBRC	STATE, S4B
-00007f e094                      	LDI		NEXT_STATE, S3
+0005e3 fd83                      	SBRC	STATE, S4B
+0005e4 e094                      	LDI		NEXT_STATE, S3
                                  
                                  	// CambiarMeses (S5) -> MostrarFecha (S3)
-000080 fd84                      	SBRC	STATE, S5B
-000081 e094                      	LDI		NEXT_STATE, S3
+0005e5 fd84                      	SBRC	STATE, S5B
+0005e6 e094                      	LDI		NEXT_STATE, S3
                                  
                                  	// MostrarFecha (S3) -> ModoAlarma (S6)
-000082 fd82                      	SBRC	STATE, S3B
-000083 e290                      	LDI		NEXT_STATE, S6
+0005e7 fd82                      	SBRC	STATE, S3B
+0005e8 e290                      	LDI		NEXT_STATE, S6
                                  
                                  	// ModoAlarma (S6) -> MostrarHora (S0)
-000084 fd85                      	SBRC	STATE, S6B
-000085 e090                      	LDI		NEXT_STATE, S0
+0005e9 fd85                      	SBRC	STATE, S6B
+0005ea e090                      	LDI		NEXT_STATE, S0
                                  
                                  	// AlarmaMinutos (S7) -> ModoAlarma (S6)
-000086 fd86                      	SBRC	STATE, S7B
-000087 e290                      	LDI		NEXT_STATE, S6
+0005eb fd86                      	SBRC	STATE, S7B
+0005ec e290                      	LDI		NEXT_STATE, S6
                                  
                                  	// AlarmaHoras (S8) -> ModoAlarma (S6)
-000088 fd87                      	SBRC	STATE, S8B
-000089 e290                      	LDI		NEXT_STATE, S6
+0005ed fd87                      	SBRC	STATE, S8B
+0005ee e290                      	LDI		NEXT_STATE, S6
                                  
                                  	// MostrarHoras (S0) -> MostrarFecha (S3)
-00008a 3080                      	CPI		STATE, 0
-00008b f419                      	BRNE	INTERMEDIATE_JUMP_PCINT_ISR
-00008c e094                      	LDI		NEXT_STATE, S3
-00008d 940c 00a6                 	JMP		COPY_NEXT_STATE
+0005ef 3080                      	CPI		STATE, 0
+0005f0 f419                      	BRNE	INTERMEDIATE_JUMP_PCINT_ISR
+0005f1 e094                      	LDI		NEXT_STATE, S3
+0005f2 940c 060b                 	JMP		COPY_NEXT_STATE
                                  
                                  // Salto intermedio por limitaciones de BRNE
                                  INTERMEDIATE_JUMP_PCINT_ISR:
-00008f 940c 00a6                 	JMP		COPY_NEXT_STATE
+0005f4 940c 060b                 	JMP		COPY_NEXT_STATE
                                  	
                                  
                                  // Lógica de Siguiente estado si se presiona PB1
                                  NEXT_STATE_LOGIC_PB1:
                                  	// CambiarMinutos (S1) -> CambiarHoras (S2)
-000091 fd80                      	SBRC	STATE, S1B
-000092 e092                      	LDI		NEXT_STATE, S2
+0005f6 fd80                      	SBRC	STATE, S1B
+0005f7 e092                      	LDI		NEXT_STATE, S2
                                  
                                  	// CambiarHoras (S2) -> MostrarHora (S0)
-000093 fd81                      	SBRC	STATE, S2B
-000094 e090                      	LDI		NEXT_STATE, S0
+0005f8 fd81                      	SBRC	STATE, S2B
+0005f9 e090                      	LDI		NEXT_STATE, S0
                                  
                                  	// MostrarFecha (S3) -> CambiarDias (S4)
-000095 fd82                      	SBRC	STATE, S3B
-000096 e098                      	LDI		NEXT_STATE, S4
+0005fa fd82                      	SBRC	STATE, S3B
+0005fb e098                      	LDI		NEXT_STATE, S4
                                  
                                  	// CambiarDías (S4) -> CambiarMeses (S5)
-000097 fd83                      	SBRC	STATE, S4B
-000098 e190                      	LDI		NEXT_STATE, S5
+0005fc fd83                      	SBRC	STATE, S4B
+0005fd e190                      	LDI		NEXT_STATE, S5
                                  
                                  	// CambiarMeses (S5) -> MostrarFecha (S3)
-000099 fd84                      	SBRC	STATE, S5B
-00009a e094                      	LDI		NEXT_STATE, S3
+0005fe fd84                      	SBRC	STATE, S5B
+0005ff e094                      	LDI		NEXT_STATE, S3
                                  
                                  	// ModoAlarma (S6) -> AlarmaMinutos (S7)
-00009b fd85                      	SBRC	STATE, S6B
-00009c e490                      	LDI		NEXT_STATE, S7
+000600 fd85                      	SBRC	STATE, S6B
+000601 e490                      	LDI		NEXT_STATE, S7
                                  
                                  	// AlarmaMinutos (S7) -> AlarmaHoras (S8)
-00009d fd86                      	SBRC	STATE, S7B
-00009e e890                      	LDI		NEXT_STATE, S8
+000602 fd86                      	SBRC	STATE, S7B
+000603 e890                      	LDI		NEXT_STATE, S8
                                  
                                  	// AlarmaHoras (S8) -> ModoAlarma (S6)
-00009f fd87                      	SBRC	STATE, S8B
-0000a0 e290                      	LDI		NEXT_STATE, S6
+000604 fd87                      	SBRC	STATE, S8B
+000605 e290                      	LDI		NEXT_STATE, S6
                                  
                                  	// MostrarHoras (S0) -> CambiarMinutos (S2)
-0000a1 3080                      	CPI		STATE, S0
-0000a2 f419                      	BRNE	COPY_NEXT_STATE
-0000a3 e091                      	LDI		NEXT_STATE, S1
-0000a4 940c 00a6                 	JMP		COPY_NEXT_STATE
+000606 3080                      	CPI		STATE, S0
+000607 f419                      	BRNE	COPY_NEXT_STATE
+000608 e091                      	LDI		NEXT_STATE, S1
+000609 940c 060b                 	JMP		COPY_NEXT_STATE
                                  
                                  // Copiar NEXT_STATE en STATE
                                  COPY_NEXT_STATE:
-0000a6 2f89                      	MOV		STATE, NEXT_STATE
-0000a7 940c 00a9                 	JMP		ENCENDER_LEDS_MODO
+00060b 2f89                      	MOV		STATE, NEXT_STATE
+00060c 940c 060e                 	JMP		ENCENDER_LEDS_MODO
                                  
                                  ENCENDER_LEDS_MODO:
                                  	// MostrarHoras (S0)
-0000a9 3080                      	CPI		STATE, S0
-0000aa f091                      	BREQ	ENCENDER_LED_HORA
+00060e 3080                      	CPI		STATE, S0
+00060f f091                      	BREQ	ENCENDER_LED_HORA
                                  
                                  	// CambiarMinutos (S1)
-0000ab 3081                      	CPI		STATE, S1
-0000ac f111                      	BREQ	PRUEBA_ALARMA			; ENCENDER_LED_HORA
+000610 3081                      	CPI		STATE, S1
+000611 f111                      	BREQ	PRUEBA_ALARMA			; ENCENDER_LED_HORA
                                  
                                  	// CambiarHoras (S2)
-0000ad 3082                      	CPI		STATE, S2
-0000ae f101                      	BREQ	PRUEBA_ALARMA			; ENCENDER_LED_HORA
+000612 3082                      	CPI		STATE, S2
+000613 f101                      	BREQ	PRUEBA_ALARMA			; ENCENDER_LED_HORA
                                  
                                  	// MostrarFecha (S3)
-0000af 3084                      	CPI		STATE, S3
-0000b0 f091                      	BREQ	ENCENDER_LED_FECHA
+000614 3084                      	CPI		STATE, S3
+000615 f091                      	BREQ	ENCENDER_LED_FECHA
                                  
                                  	// CambiarDias (S4)
-0000b1 3088                      	CPI		STATE, S4
-0000b2 f0e1                      	BREQ	PRUEBA_ALARMA			; ENCENDER_LED_FECHA
+000616 3088                      	CPI		STATE, S4
+000617 f0e1                      	BREQ	PRUEBA_ALARMA			; ENCENDER_LED_FECHA
                                  
                                  	// CambiarMeses (S5)
-0000b3 3180                      	CPI		STATE, S5
-0000b4 f0d1                      	BREQ	PRUEBA_ALARMA			; ENCENDER_LED_FECHA
+000618 3180                      	CPI		STATE, S5
+000619 f0d1                      	BREQ	PRUEBA_ALARMA			; ENCENDER_LED_FECHA
                                  
                                  	// Modo Alarma (S6)
-0000b5 3280                      	CPI		STATE, S6
-0000b6 f091                      	BREQ	ENCENDER_LED_ALARMA
+00061a 3280                      	CPI		STATE, S6
+00061b f091                      	BREQ	ENCENDER_LED_ALARMA
                                  
                                  	// AlarmaMinutos (S7)
-0000b7 3480                      	CPI		STATE, S7
-0000b8 f0b1                      	BREQ	PRUEBA_ALARMA			; ENCENDER_LED_ALARMA
+00061c 3480                      	CPI		STATE, S7
+00061d f0b1                      	BREQ	PRUEBA_ALARMA			; ENCENDER_LED_ALARMA
                                  
                                  	// AlarmaHoras (S8)
-0000b9 3880                      	CPI		STATE, S8
-0000ba f0a1                      	BREQ	PRUEBA_ALARMA			; ENCENDER_LED_ALARMA
+00061e 3880                      	CPI		STATE, S8
+00061f f0a1                      	BREQ	PRUEBA_ALARMA			; ENCENDER_LED_ALARMA
                                  
                                  	// Salir (Si es que algo falla, por alguna razón)
-0000bb 940c 00d0                 	JMP		END_PC_ISR
+000620 940c 0635                 	JMP		END_PC_ISR
                                  
                                  // Encender LEDs Indicadores de Modo
                                  ENCENDER_LED_HORA:
-0000bd 9a44                      	SBI		PORTC, PC4
-0000be 9845                      	CBI		PORTC, PC5
-0000bf 982c                      	CBI		PORTB, PB4
-0000c0 982d                      	CBI		PORTB, PB5		; Quitar esta línea en el programa final
-0000c1 940c 00d0                 	JMP		END_PC_ISR
+000622 9a44                      	SBI		PORTC, PC4
+000623 9845                      	CBI		PORTC, PC5
+000624 982c                      	CBI		PORTB, PB4
+000625 982d                      	CBI		PORTB, PB5		; Quitar esta línea en el programa final
+000626 940c 0635                 	JMP		END_PC_ISR
                                  
                                  ENCENDER_LED_FECHA:
-0000c3 9844                      	CBI		PORTC, PC4
-0000c4 9a45                      	SBI		PORTC, PC5
-0000c5 982c                      	CBI		PORTB, PB4
-0000c6 982d                      	CBI		PORTB, PB5		; Quitar esta línea en el programa final
-0000c7 940c 00d0                 	JMP		END_PC_ISR
+000628 9844                      	CBI		PORTC, PC4
+000629 9a45                      	SBI		PORTC, PC5
+00062a 982c                      	CBI		PORTB, PB4
+00062b 982d                      	CBI		PORTB, PB5		; Quitar esta línea en el programa final
+00062c 940c 0635                 	JMP		END_PC_ISR
                                  
                                  ENCENDER_LED_ALARMA:
-0000c9 9844                      	CBI		PORTC, PC4
-0000ca 9845                      	CBI		PORTC, PC5
-0000cb 9a2c                      	SBI		PORTB, PB4
-0000cc 982d                      	CBI		PORTB, PB5		; Quitar esta línea en el programa final
-0000cd 940c 00d0                 	JMP		END_PC_ISR
+00062e 9844                      	CBI		PORTC, PC4
+00062f 9845                      	CBI		PORTC, PC5
+000630 9a2c                      	SBI		PORTB, PB4
+000631 982d                      	CBI		PORTB, PB5		; Quitar esta línea en el programa final
+000632 940c 0635                 	JMP		END_PC_ISR
                                  
                                  // Quitar esto en el programa final
                                  PRUEBA_ALARMA:
-0000cf 9a2d                      	SBI		PORTB, PB5
+000634 9a2d                      	SBI		PORTB, PB5
                                  
                                  END_PC_ISR:
-0000d0 910f                      	POP		R16
-0000d1 bf0f                      	OUT		SREG, R16
-0000d2 910f                      	POP		R16
-0000d3 9518                      	RETI
+000635 910f                      	POP		R16
+000636 bf0f                      	OUT		SREG, R16
+000637 910f                      	POP		R16
+000638 9518                      	RETI
                                  
                                  
                                  // --------------------------------------------------------------------
                                  // | RUTINAS DE INTERRUPCIÓN CON TIMER0								  |
                                  // --------------------------------------------------------------------
                                  TIMER0_ISR:
-0000d4 930f                      	PUSH	R16
-0000d5 b70f                      	IN		R16, SREG
-0000d6 930f                      	PUSH	R16
+000639 930f                      	PUSH	R16
+00063a b70f                      	IN		R16, SREG
+00063b 930f                      	PUSH	R16
                                  
                                  	// Reiniciar el TIMER0
-0000d7 940e 0065                 	CALL	RESET_TIMER0
+00063c 940e 05ca                 	CALL	RESET_TIMER0
                                  
                                  	// Rotar señal de multiplexado a la izquierda (Valor Inicial 0X01)
-0000d9 1f77                      	ROL		MUX_SIGNAL
+00063e 1f77                      	ROL		MUX_SIGNAL
                                  
                                  	// Aplicar máscara para PC1-PC3
-0000da 707f                      	ANDI	MUX_SIGNAL, 0X0F
+00063f 707f                      	ANDI	MUX_SIGNAL, 0X0F
                                  
                                  	// Si el bit de encendido desaparece, reiniciar
-0000db 3070                      	CPI		MUX_SIGNAL, 0
-0000dc f411                      	BRNE	END_T0_ISR
-0000dd e071                      	LDI		MUX_SIGNAL, 0X01
-0000de c000                      	RJMP	END_T0_ISR
+000640 3070                      	CPI		MUX_SIGNAL, 0
+000641 f411                      	BRNE	END_T0_ISR
+000642 e071                      	LDI		MUX_SIGNAL, 0X01
+000643 c000                      	RJMP	END_T0_ISR
                                  
                                  
                                  END_T0_ISR:
-0000df 910f                      	POP		R16
-0000e0 bf0f                      	OUT		SREG, R16
-0000e1 910f                      	POP		R16
+000644 910f                      	POP		R16
+000645 bf0f                      	OUT		SREG, R16
+000646 910f                      	POP		R16
 
 
 RESOURCE USE INFORMATION
@@ -1427,39 +1673,39 @@ counted separately from r26..r31 here.
 .dseg memory usage only counts static data declared with .byte
 
 "ATmega328P" register use summary:
-x  :   0 y  :   0 z  :   0 r0 :   0 r1 :   0 r2 :   0 r3 :   0 r4 :   0 
+x  :   0 y  :   0 z  :   3 r0 :   0 r1 :   0 r2 :   0 r3 :   0 r4 :   0 
 r5 :   0 r6 :   0 r7 :   0 r8 :   0 r9 :   0 r10:   0 r11:   0 r12:   0 
-r13:   0 r14:   0 r15:   0 r16:  42 r17:   0 r18:   0 r19:   0 r20:   0 
-r21:   0 r22:   2 r23:   9 r24:  30 r25:  21 r26:   0 r27:   0 r28:   0 
-r29:   0 r30:   0 r31:   0 
-Registers used: 5 out of 35 (14.3%)
+r13:   0 r14:   0 r15:   0 r16:  49 r17:   2 r18:   2 r19:   2 r20:   2 
+r21:   2 r22:   8 r23:  15 r24:  48 r25:  21 r26:   0 r27:   0 r28:   0 
+r29:   0 r30:   5 r31:   2 
+Registers used: 13 out of 35 (37.1%)
 
 "ATmega328P" instruction use summary:
-.lds  :   0 .sts  :   0 adc   :   0 add   :   0 adiw  :   0 and   :   0 
-andi  :   1 asr   :   0 bclr  :   0 bld   :   0 brbc  :   0 brbs  :   0 
-brcc  :   0 brcs  :   0 break :   0 breq  :  13 brge  :   0 brhc  :   0 
+.lds  :   0 .sts  :   0 adc   :   0 add   :   2 adiw  :   0 and   :   0 
+andi  :   1 asr   :   0 bclr  :   0 bld   :   1 brbc  :   0 brbs  :   0 
+brcc  :   0 brcs  :   0 break :   0 breq  :  35 brge  :   0 brhc  :   0 
 brhs  :   0 brid  :   0 brie  :   0 brlo  :   0 brlt  :   0 brmi  :   0 
 brne  :   3 brpl  :   0 brsh  :   0 brtc  :   0 brts  :   0 brvc  :   0 
-brvs  :   0 bset  :   0 bst   :   0 call  :   3 cbi   :  22 cbr   :   0 
+brvs  :   0 bset  :   0 bst   :   1 call  :   4 cbi   :  22 cbr   :   0 
 clc   :   0 clh   :   0 cli   :   0 cln   :   0 clr   :   0 cls   :   0 
 clt   :   0 clv   :   0 clz   :   0 com   :   0 cp    :   0 cpc   :   0 
-cpi   :  16 cpse  :   0 dec   :   0 eor   :   0 fmul  :   0 fmuls :   0 
-fmulsu:   0 icall :   0 ijmp  :   0 in    :   2 inc   :   0 jmp   :  11 
-ld    :   0 ldd   :   0 ldi   :  39 lds   :   0 lpm   :   0 lsl   :   0 
-lsr   :   0 mov   :   1 movw  :   0 mul   :   0 muls  :   0 mulsu :   0 
-neg   :   0 nop   :   0 or    :   0 ori   :   0 out   :  13 pop   :   4 
-push  :   4 rcall :   0 ret   :   5 reti  :   2 rjmp  :   5 rol   :   1 
+cpi   :  38 cpse  :   0 dec   :   0 eor   :   0 fmul  :   0 fmuls :   0 
+fmulsu:   0 icall :   0 ijmp  :   0 in    :   3 inc   :   2 jmp   :  11 
+ld    :   0 ldd   :   0 ldi   :  46 lds   :   0 lpm   :   6 lsl   :   0 
+lsr   :   0 mov   :   6 movw  :   0 mul   :   0 muls  :   0 mulsu :   0 
+neg   :   0 nop   :   0 or    :   0 ori   :   0 out   :  14 pop   :   4 
+push  :   4 rcall :   0 ret   :   8 reti  :   2 rjmp  :   5 rol   :   1 
 ror   :   0 sbc   :   0 sbci  :   0 sbi   :   8 sbic  :   0 sbis  :   2 
-sbiw  :   0 sbr   :   0 sbrc  :  17 sbrs  :   0 sec   :   0 seh   :   0 
+sbiw  :   0 sbr   :   0 sbrc  :  19 sbrs  :   0 sec   :   0 seh   :   0 
 sei   :   1 sen   :   0 ser   :   0 ses   :   0 set   :   0 sev   :   0 
 sez   :   0 sleep :   0 spm   :   0 st    :   0 std   :   0 sts   :   5 
 sub   :   0 subi  :   0 swap  :   0 tst   :   0 wdr   :   0 
-Instructions used: 22 out of 113 (19.5%)
+Instructions used: 27 out of 113 (23.9%)
 
 "ATmega328P" memory use summary [bytes]:
 Segment   Begin    End      Code   Data   Used    Size   Use%
 ---------------------------------------------------------------
-[.cseg] 0x000000 0x0001c6    394      0    394   32768   1.2%
+[.cseg] 0x000000 0x000c90    542    120    662   32768   2.0%
 [.dseg] 0x000100 0x000100      0      0      0    2048   0.0%
 [.eseg] 0x000000 0x000000      0      0      0    1024   0.0%
 
