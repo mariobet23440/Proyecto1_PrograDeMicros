@@ -28,6 +28,22 @@ VERSIÓN 3 - MOSTRAR SALIDAS SEGÚN MODO Y LOOKUP TABLE
 + La máquina de estados funciona correctamente.
 + El multiplexado funciona correctamente
 -> Se procederá a revisar el selector de salidas según modo
+
+ERRORES DETECTADOS
+Hacía falta un RET en una llamada. Es de esperar que por eso los errores que tenía anteriormente fueran tan erráticos.
+Los errores fueron corregidos-
+
++ Ahora los displays muestran el contador correspondiente y no hay interferencias con la máquina de estados.
+
+
+VERSIÓN 4 - INTEGRACIÓN DE RUTINAS DE TIMER1
++ En esta versión se integra la ISR de TIMER1, para incrementar los valores de los contadores.
++ Todo funciona correctamente. Todavía falta integrar incrementos y decrementos, así como el modo alarma.
+
+VERSIÓN 5 - INTEGRACIÓN DE RUTINAS DE TIMER2
++ En esta versión se integra la ISR de TIMER2, para LEDs intermitentes. Hasta aquí llegué con el código original.
+Los LEDs intermitentes a veces parpadean brevemente y luego se apagan. Verificaremos si eso ocurre al incrementar
+el periodo entre desbordamientos del TIMER1.
 */
 
 // --------------------------------------------------------------------
@@ -46,13 +62,33 @@ VERSIÓN 3 - MOSTRAR SALIDAS SEGÚN MODO Y LOOKUP TABLE
 .org OVF0addr				; Vector de interrupción para TIMER0_OVF
     RJMP TIMER0_ISR			; Saltar a la rutina de interrupción
 
+; Interrupciones por overflow de TIMER1 (Modo Normal)
+.org OVF1addr				; Vector de interrupción para TIMER1_OVF
+    RJMP TIMER1_ISR			; Saltar a la rutina de interrupción
+
+; Interrupciones por overflow de TIMER2 (Modo Normal)
+.org OVF2addr				; Vector de interrupción para TIMER2_OVF
+    RJMP TIMER2_ISR			; Saltar a la rutina de interrupción
+
+
 // --------------------------------------------------------------------
 // | DEFINICIONES DE REGISTROS DE USO COMÚN Y CONSTANTES DE ASSEMBLER |
 // --------------------------------------------------------------------
 
+// CONSTANTES DE TIMERS (Para fclk = 1 MHz)
 // Constantes para Timer0
 .equ	PRESCALER0 = (1<<CS01) | (1<<CS00)				; Prescaler de TIMER0 (1024)
 .equ	TIMER_START0 = 236								; Valor inicial del Timer0 (1.25 ms)
+
+// Constantes para Timer1
+.equ	PRESCALER1 = (1<<CS11) | (1<<CS10)				; Prescaler de TIMER1 (1024)
+.equ	TIMER_START1 = 6942								; Valor inicial de TIMER1 (60s)
+														; Para acelerar el tiempo usar 65438
+														; Para que cada minuto incremente en un segundo usar 6942
+
+// Constantes para Timer2
+.equ	PRESCALER2 = (1<<CS22) | (1<<CS21) | (1<<CS20)	; Prescaler de TIMER2 (1024)
+.equ	TIMER_START2 = 158								; Valor inicial de TIMER2 (100 ms)
 
 // Estados de Máquina de estados finitos
 .equ	S0 = 0X00					; MostrarHora
@@ -92,7 +128,10 @@ VERSIÓN 3 - MOSTRAR SALIDAS SEGÚN MODO Y LOOKUP TABLE
 
 // R16 y R17 quedan como registros temporales
 
-// Registros auxiliares
+// Registros inferiores (d < 16)
+.def	T2_AUX_COUNT = R2
+
+// Registros auxiliares (16 <= d <= 25)
 .def	MINUTE_COUNT = R18
 .def	HOUR_COUNT = R19
 .def	DAY_COUNT = R20
@@ -168,6 +207,8 @@ START:
 
 	// - REINICIAR TIMERS Y HABILITAR INTERRUPCIONES POR OVERFLOWS DE TIMERS -
 	CALL	RESET_TIMER0
+	CALL	RESET_TIMER1
+	CALL	RESET_TIMER2
 	
 	// - HABILITACIÓN DE INTERRUPCIONES GLOBALES -
 	SEI
@@ -356,7 +397,6 @@ SHOW_DAY:
 // --------------------------------------------------------------------
 // | RUTINA NO DE INTERRUPCIÓN 3 - LOOKUP_TABLE (Verificado)		  |
 // --------------------------------------------------------------------
-
 // LOOKUP TABLE
 LOOKUP_TABLE:
 	// Guardar bit 7 de PORTD en el Bit T del SREG
@@ -393,9 +433,9 @@ LOOKUP_TABLE:
 	RET
 
 // --------------------------------------------------------------------
-// | RUTINA NO DE INTERRUPCIÓN 3 - Reinicio de TIMER0 	(Verificado)  |
+// | RUTINA NO DE INTERRUPCIÓN 4 a 6 - Reinicio de TIMERs (Verificado)|
 // --------------------------------------------------------------------
-// Reiniciar Timer0
+// - REINICIAR TIMER0 -
 RESET_TIMER0:
 	// - PRESCALER Y VALOR INICIAL -
 	LDI     R16, PRESCALER0
@@ -408,6 +448,34 @@ RESET_TIMER0:
 	STS		TIMSK0, R16
 	RET
 
+// - REINICIAR TIMER1 -
+RESET_TIMER1:
+	// - PRESCALER Y VALOR INICIAL -
+	LDI     R16, PRESCALER1
+    STS     TCCR1B, R16
+    LDI     R16, LOW(TIMER_START1)
+    STS     TCNT1L, R16
+	LDI     R16, HIGH(TIMER_START1)
+    STS     TCNT1H, R16
+
+	// - HABILITACIÓN DE INTERRUPCIONES POR OVERFLOW EN TIMER1 -
+	LDI		R16, (1 << TOIE1)
+	STS		TIMSK1, R16
+	RET
+
+// - REINICIAR TIMER2 -
+RESET_TIMER2:
+	// - PRESCALER Y VALOR INICIAL -
+	LDI     R16, PRESCALER2
+    STS     TCCR2B, R16
+    LDI     R16, TIMER_START2
+    STS     TCNT2, R16
+
+	// - HABILITACIÓN DE INTERRUPCIONES POR OVERFLOW EN TIMER2 -
+	LDI		R16, (1 << TOIE2)
+	STS		TIMSK2, R16
+	RET
+
 // --------------------------------------------------------------------
 // | RUTINAS DE INTERRUPCIÓN POR CAMBIO EN PINES 	(Verificado)	  |															  |
 // --------------------------------------------------------------------
@@ -417,13 +485,21 @@ PCINT_ISR:
 	IN		R16, SREG
 	PUSH	R16
 
-	// Cambiar Estados con PB0
+	// Cambiar Indicador con PB0
 	SBIS	PINB, PB0
 	JMP		NEXT_STATE_LOGIC_PB0
 
-	// Cambiar Estados con PB1
+	// Cambiar modo de cambio de contadores con PB1
 	SBIS	PINB, PB1
 	JMP		NEXT_STATE_LOGIC_PB1
+
+	// Incrementar contador con PB3
+	SBIS	PINB, PB3
+	JMP		INCREMENTAR_PC
+
+	// Decrementar contador con PB4
+	;SBIS	PINB, PB4
+	;JMP		DECREMENTAR_PC
 	
 	// Si no se detecta nada, ir al final
 	JMP		END_PC_ISR
@@ -588,6 +664,31 @@ ENCENDER_LED_ALARMA:
 PRUEBA_ALARMA:
 	SBI		PORTB, PB5
 
+// Incrementar contador con PC (Vamos a reciclar algunas subrutinas)
+INCREMENTAR_PC:	
+	// CambiarMinutos (S1)
+	SBRC	STATE, S1B
+	INC		MINUTE_COUNT
+	SBRC	STATE, S1B
+	JMP		COMPARACION_MINUTOS_HORAS
+
+	// CambiarHoras (S2)
+	SBRC	STATE, S2B
+	INC		HOUR_COUNT
+	SBRC	STATE, S2B
+	JMP		COMPARACION_HORAS_DIAS
+	
+	// CambiarDias (S4)
+	SBRC	STATE, S4B
+	INC		DAY_COUNT
+	SBRC	STATE, S4B
+	JMP		COMPARACION_DIAS_MESES
+
+	// CambiarMeses (S5)
+	SBRC	STATE, S5B
+	JMP		AUMENTAR_MES
+	
+
 END_PC_ISR:
 	POP		R16
 	OUT		SREG, R16
@@ -621,6 +722,151 @@ TIMER0_ISR:
 
 
 END_T0_ISR:
+	POP		R16
+	OUT		SREG, R16
+	POP		R16
+	RETI
+
+// --------------------------------------------------------------------
+// | RUTINAS DE INTERRUPCIÓN CON TIMER1								  |
+// --------------------------------------------------------------------
+TIMER1_ISR:
+	PUSH	R16
+	IN		R16, SREG
+	PUSH	R16
+
+	// Reiniciar el TIMER1
+	CALL	RESET_TIMER1
+
+	// INCREMENTO DE MINUTOS
+	INC		MINUTE_COUNT
+
+// - ESTAS SUBRUTINAS SE COMPARTEN CON LAS SUBRUTINAS DE PC -
+COMPARACION_MINUTOS_HORAS:	
+	// INCREMENTO DE HORAS
+	// Si MINUTE_TENS es mayor o igual a 60, limpiarlo e incrementar HOUR_COUNT
+	CPI		MINUTE_COUNT, 60
+	BRLO	INTERMEDIATE_JUMP1
+	CLR		MINUTE_COUNT
+	INC		HOUR_COUNT
+
+COMPARACION_HORAS_DIAS:
+	// INCREMENTO DE DÍAS
+	// Si HOUR_COUNT es mayor o igual a 24, limpiarlo e incrementar DAY_COUNT
+	CPI		HOUR_COUNT, 24
+	BRLO	INTERMEDIATE_JUMP1
+	CLR		HOUR_COUNT
+	INC		DAY_COUNT
+
+	// Si el número de días no excede 28 (El mínimo para cambiar de mes) salir para
+	// evitar comparaciones innecesarias
+	CPI		DAY_COUNT, 28
+	BRLO	INTERMEDIATE_JUMP1
+		
+	// Pero, si ese no es el caso
+	// "Goku eta vaina se puso seria"
+	// Si el número de días excede 29, incrementar mes (Muchas comparaciones)
+	RJMP	COMPARACION_DIAS_MESES
+
+INTERMEDIATE_JUMP1:
+	JMP	END_T1PC_ISR
+
+	
+// COMPARACIONES PARA INCREMENTO DE MESES
+COMPARACION_DIAS_MESES:	
+	// Verificar si el mes es febrero
+	CPI		MONTH_COUNT, 2
+	BREQ	FEBRERO
+
+	// Meses con 30 días (abril, junio, septiembre, noviembre)
+    CPI		MONTH_COUNT, 4
+    BREQ	MESES_30
+    CPI		MONTH_COUNT, 6
+    BREQ	MESES_30
+    CPI		MONTH_COUNT, 9
+    BREQ	MESES_30
+    CPI		MONTH_COUNT, 11
+    BREQ	MESES_30
+
+	// Si el mes no es de 30 días y no es febrero, es de 31 días
+	RJMP	MESES_31
+
+FEBRERO:
+	// Verificar si el contador de días pasa de 28
+	CPI		DAY_COUNT, 29
+    BRLO	END_T1PC_ISR
+
+	// Si han pasado más de 28 días, reiniciar contador de días
+    LDI		DAY_COUNT, 1
+    RJMP	AUMENTAR_MES
+
+MESES_30:
+	// Verificar si el contador de días pasa de 30
+	CPI		DAY_COUNT, 31
+    BRLO	END_T1PC_ISR
+
+	// Si han pasado más de 30 días, reiniciar contador de días
+    LDI		DAY_COUNT, 1
+	RJMP	AUMENTAR_MES
+
+MESES_31:
+	// Verificar si el contador pasa de 31
+	CPI		DAY_COUNT, 32
+    BRLO	END_T1PC_ISR
+
+	// Si han pasado más de 31 días, reiniciar contadores de días
+    LDI		DAY_COUNT, 1
+	RJMP	AUMENTAR_MES
+
+
+// AUMENTAR MES
+AUMENTAR_MES:
+	// Aumentar contador de meses
+	INC		MONTH_COUNT
+	CPI		MONTH_COUNT, 12
+	BRLO	END_T1PC_ISR
+
+	// Si las unidades de meses excenden 12, reiniciar ambos contadores
+	CPI		MONTH_COUNT, 12
+	LDI		MONTH_COUNT, 1
+	RJMP	END_T1PC_ISR
+
+// Terminar Rutina de Interrupción
+END_T1PC_ISR:
+	POP		R16
+	OUT		SREG, R16
+	POP		R16
+	RETI
+
+// --------------------------------------------------------------------
+// | RUTINAS DE INTERRUPCIÓN CON TIMER2								  |
+// --------------------------------------------------------------------
+TIMER2_ISR:
+	PUSH	R16
+	IN		R16, SREG
+	PUSH	R16
+
+	// Reiniciar el TIMER2
+	CALL	RESET_TIMER2
+
+	// Incrementar el contador auxiliar hasta 6
+	INC		T2_AUX_COUNT
+	
+	// Leer T2_AUX_COUNT y comparar
+	MOV		R16, T2_AUX_COUNT 
+	CPI		R16, 6
+	BRLO	END_T2_ISR
+
+	// Si el contador rebasa 6, reiniciar y alternar el bit PD7
+	CLR		T2_AUX_COUNT		; Guardar el reinicio del contador
+	IN		R16, PORTD			; Leer estado actual de PORTD
+	LDI		R17, (1 << PD7)
+    EOR		R16, R17			; Alternar bit PD7 (D7)
+    OUT		PORTD, R16			; Escribir nuevo estado
+	
+
+// Terminar Rutina de Interrupción
+END_T2_ISR:
 	POP		R16
 	OUT		SREG, R16
 	POP		R16
