@@ -1,5 +1,5 @@
 
-AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm Wed Mar 19 17:58:22 2025
+AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm Wed Mar 19 18:04:39 2025
 
 [builtin](2): Including file 'C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\m328Pdef.inc'
 [builtin](2): Including file 'C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\m328Pdef.inc'
@@ -991,15 +991,11 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  FECHA DE ENTREGA: 21 de marzo de 2025
                                  */
                                  
-                                 /*
+                                 /* 
                                  ENSAYO DE RECONSTRUCCIÓN
                                  Para probar el correcto funcionamiento de las distintas partes del código, integraremos el código original
                                  (La última versión) un módulo a la vez.
-                                 1. Multiplexado
-                                 2. Interrupts por PC
-                                 */
                                  
-                                 /* 
                                  VERSIÓN 1 - SÓLO MULTIPLEXADO
                                  - ¿Qué se esperaría?: Los cuatro displays deberían mostrar el mismo número.
                                  - ¿Funciona?: Si
@@ -1013,6 +1009,11 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  - Todavía no configuramos el incremento automático de unidades de tiempo (Con TIMER1). 
                                    Introducimos los registros MINUTE_COUNT, HOUR_COUNT, DAY_COUNT, MONTH_COUNT. La idea es que
                                    el programa muestre cada número en el display correspondiente.
+                                 + AQUÍ SE OBSERVARON PROBLEMAS. Los dos displays muestran el indicador de días.
+                                 + La lookup table parece funcionar correctamente (Muestra los números correctos).
+                                 + La máquina de estados funciona correctamente.
+                                 + El multiplexado funciona correctamente
+                                 -> Se procederá a revisar el selector de salidas según modo
                                  */
                                  
                                  // --------------------------------------------------------------------
@@ -1220,7 +1221,7 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
 000561 e081                      	LDI		STATE, 1										; Registro de Estado
 000562 e091                      	LDI		NEXT_STATE, 1									; Registro de Estado Siguiente
                                  
-                                 	// PRUEBA DE DISPLAYS (QUITAR)
+                                 	// PRUEBA DE DISPLAYS (QUITAR) !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 000563 e021                      	LDI		MINUTE_COUNT, 0X01
 000564 e032                      	LDI		HOUR_COUNT, 0X02
 000565 e043                      	LDI		DAY_COUNT, 0X03
@@ -1239,7 +1240,7 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
 00056b cffb                      	RJMP	MAINLOOP
                                  
                                  // --------------------------------------------------------------------
-                                 // | RUTINA NO DE INTERRUPCIÓN 1 - MULTIPLEXADO						  |
+                                 // | RUTINA NO DE INTERRUPCIÓN 1 - MULTIPLEXADO	(Verificado)		  |
                                  // --------------------------------------------------------------------
                                  // - ACTUALIZAR DISPLAYS -
                                  MULTIPLEXADO:
@@ -1388,7 +1389,7 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  
                                  
                                  // --------------------------------------------------------------------
-                                 // | RUTINA NO DE INTERRUPCIÓN 3 - LOOKUP_TABLE						  |
+                                 // | RUTINA NO DE INTERRUPCIÓN 3 - LOOKUP_TABLE (Verificado)		  |
                                  // --------------------------------------------------------------------
                                  
                                  // LOOKUP TABLE
@@ -1427,7 +1428,7 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
 0005c9 9508                      	RET
                                  
                                  // --------------------------------------------------------------------
-                                 // | RUTINA NO DE INTERRUPCIÓN 3 - Reinicio de TIMER0				  |
+                                 // | RUTINA NO DE INTERRUPCIÓN 3 - Reinicio de TIMER0 	(Verificado)  |
                                  // --------------------------------------------------------------------
                                  // Reiniciar Timer0
                                  RESET_TIMER0:
@@ -1443,8 +1444,9 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
 0005d1 9508                      	RET
                                  
                                  // --------------------------------------------------------------------
-                                 // | RUTINAS DE INTERRUPCIÓN POR CAMBIO EN PINES					  |															  |
+                                 // | RUTINAS DE INTERRUPCIÓN POR CAMBIO EN PINES 	(Verificado)	  |															  |
                                  // --------------------------------------------------------------------
+                                 // MÁQUINA DE ESTADOS FINITOS
                                  PCINT_ISR:
 0005d2 930f                      	PUSH	R16
 0005d3 b70f                      	IN		R16, SREG
@@ -1631,6 +1633,7 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  // --------------------------------------------------------------------
                                  // | RUTINAS DE INTERRUPCIÓN CON TIMER0								  |
                                  // --------------------------------------------------------------------
+                                 // CAMBIO DE SEÑAL DE MULTIPLEXADO
                                  TIMER0_ISR:
 000639 930f                      	PUSH	R16
 00063a b70f                      	IN		R16, SREG

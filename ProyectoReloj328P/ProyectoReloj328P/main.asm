@@ -5,15 +5,11 @@ DESCRIPCIÓN: Reloj que muestra fecha y hora con modo de configuración de alarma.
 FECHA DE ENTREGA: 21 de marzo de 2025
 */
 
-/*
+/* 
 ENSAYO DE RECONSTRUCCIÓN
 Para probar el correcto funcionamiento de las distintas partes del código, integraremos el código original
 (La última versión) un módulo a la vez.
-1. Multiplexado
-2. Interrupts por PC
-*/
 
-/* 
 VERSIÓN 1 - SÓLO MULTIPLEXADO
 - ¿Qué se esperaría?: Los cuatro displays deberían mostrar el mismo número.
 - ¿Funciona?: Si
@@ -29,7 +25,9 @@ VERSIÓN 3 - MOSTRAR SALIDAS SEGÚN MODO Y LOOKUP TABLE
   el programa muestre cada número en el display correspondiente.
 + AQUÍ SE OBSERVARON PROBLEMAS. Los dos displays muestran el indicador de días.
 + La lookup table parece funcionar correctamente (Muestra los números correctos).
-+ Se procederá a revisar el selector de salidas según modo
++ La máquina de estados funciona correctamente.
++ El multiplexado funciona correctamente
+-> Se procederá a revisar el selector de salidas según modo
 */
 
 // --------------------------------------------------------------------
@@ -183,7 +181,7 @@ START:
 	LDI		STATE, 1										; Registro de Estado
 	LDI		NEXT_STATE, 1									; Registro de Estado Siguiente
 
-	// PRUEBA DE DISPLAYS (QUITAR)
+	// PRUEBA DE DISPLAYS (QUITAR) !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	LDI		MINUTE_COUNT, 0X01
 	LDI		HOUR_COUNT, 0X02
 	LDI		DAY_COUNT, 0X03
@@ -202,7 +200,7 @@ MAINLOOP:
 	RJMP	MAINLOOP
 
 // --------------------------------------------------------------------
-// | RUTINA NO DE INTERRUPCIÓN 1 - MULTIPLEXADO						  |
+// | RUTINA NO DE INTERRUPCIÓN 1 - MULTIPLEXADO	(Verificado)		  |
 // --------------------------------------------------------------------
 // - ACTUALIZAR DISPLAYS -
 MULTIPLEXADO:
@@ -300,6 +298,7 @@ MODE_DISPLAY43:
 
 SHOW_HOURS:
 	MOV		OUT_PORTD, HOUR_COUNT
+	// AQUÍ ESTABA EL HORROR (ERROR)
 
 SHOW_MONTH:
 	MOV		OUT_PORTD, MONTH_COUNT
@@ -351,7 +350,7 @@ SHOW_DAY:
 
 
 // --------------------------------------------------------------------
-// | RUTINA NO DE INTERRUPCIÓN 3 - LOOKUP_TABLE						  |
+// | RUTINA NO DE INTERRUPCIÓN 3 - LOOKUP_TABLE (Verificado)		  |
 // --------------------------------------------------------------------
 
 // LOOKUP TABLE
@@ -390,7 +389,7 @@ LOOKUP_TABLE:
 	RET
 
 // --------------------------------------------------------------------
-// | RUTINA NO DE INTERRUPCIÓN 3 - Reinicio de TIMER0				  |
+// | RUTINA NO DE INTERRUPCIÓN 3 - Reinicio de TIMER0 	(Verificado)  |
 // --------------------------------------------------------------------
 // Reiniciar Timer0
 RESET_TIMER0:
@@ -406,8 +405,9 @@ RESET_TIMER0:
 	RET
 
 // --------------------------------------------------------------------
-// | RUTINAS DE INTERRUPCIÓN POR CAMBIO EN PINES					  |															  |
+// | RUTINAS DE INTERRUPCIÓN POR CAMBIO EN PINES 	(Verificado)	  |															  |
 // --------------------------------------------------------------------
+// MÁQUINA DE ESTADOS FINITOS
 PCINT_ISR:
 	PUSH	R16
 	IN		R16, SREG
@@ -594,6 +594,7 @@ END_PC_ISR:
 // --------------------------------------------------------------------
 // | RUTINAS DE INTERRUPCIÓN CON TIMER0								  |
 // --------------------------------------------------------------------
+// CAMBIO DE SEÑAL DE MULTIPLEXADO
 TIMER0_ISR:
 	PUSH	R16
 	IN		R16, SREG
