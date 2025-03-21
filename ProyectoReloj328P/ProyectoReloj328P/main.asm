@@ -1,6 +1,7 @@
 /*
 PROGRAMACIÓN DE MICROCONTROLADORES
 PROYECTO 1 - RELOJ DIGITAL
+CREADOR: Mario Alejandro Betancourt Franco
 DESCRIPCIÓN: Reloj que muestra fecha y hora con modo de configuración de alarma.
 FECHA DE ENTREGA: 21 de marzo de 2025
 ÚLTIMA MODIFICACIÓN: 20/03/2025
