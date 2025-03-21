@@ -1,5 +1,5 @@
 
-AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm Thu Mar 20 14:40:10 2025
+AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicros\ProyectoReloj328P\ProyectoReloj328P\main.asm Thu Mar 20 17:38:39 2025
 
 [builtin](2): Including file 'C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\m328Pdef.inc'
 [builtin](2): Including file 'C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\m328Pdef.inc'
@@ -1015,7 +1015,7 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  
                                  ; Interrupciones por overflow de TIMER2 (Modo Normal)
                                  .org OVF2addr				; Vector de interrupción para TIMER2_OVF
-000012 c73b                          RJMP TIMER2_ISR			; Saltar a la rutina de interrupción
+000012 c73a                          RJMP TIMER2_ISR			; Saltar a la rutina de interrupción
                                  
                                  
                                  // --------------------------------------------------------------------
@@ -2052,7 +2052,7 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
 000728 c002                      	RJMP	COMPARACION_DIAS_MESES_INC
                                  
                                  INTERMEDIATE_JUMP1:
-000729 940c 0748                 	JMP	END_T1PC_ISR
+000729 940c 0747                 	JMP	END_T1PC_ISR
                                  
                                  	
                                  // COMPARACIONES PARA INCREMENTO DE MESES
@@ -2077,7 +2077,7 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  FEBRERO:
                                  	// Verificar si el contador de días pasa de 28
 000736 314d                      	CPI		DAY_COUNT, 29
-000737 f080                          BRLO	END_T1PC_ISR
+000737 f078                          BRLO	END_T1PC_ISR
                                  
                                  	// Si han pasado más de 28 días, reiniciar contador de días
 000738 e041                          LDI		DAY_COUNT, 1
@@ -2086,7 +2086,7 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  MESES_30:
                                  	// Verificar si el contador de días pasa de 30
 00073a 314f                      	CPI		DAY_COUNT, 31
-00073b f060                          BRLO	END_T1PC_ISR
+00073b f058                          BRLO	END_T1PC_ISR
                                  
                                  	// Si han pasado más de 30 días, reiniciar contador de días
 00073c e041                          LDI		DAY_COUNT, 1
@@ -2095,7 +2095,7 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  MESES_31:
                                  	// Verificar si el contador pasa de 31
 00073e 3240                      	CPI		DAY_COUNT, 32
-00073f f040                          BRLO	END_T1PC_ISR
+00073f f038                          BRLO	END_T1PC_ISR
                                  
                                  	// Si han pasado más de 31 días, reiniciar contadores de días
 000740 e041                          LDI		DAY_COUNT, 1
@@ -2106,22 +2106,21 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  	// INCREMENTAR contador de meses
 000742 9553                      	INC		MONTH_COUNT
 000743 305d                      	CPI		MONTH_COUNT, 13
-000744 f018                      	BRLO	END_T1PC_ISR
+000744 f010                      	BRLO	END_T1PC_ISR
                                  
                                  	// Si las unidades de meses excenden 12, reiniciar ambos contadores
-000745 305c                      	CPI		MONTH_COUNT, 12
-000746 e051                      	LDI		MONTH_COUNT, 1
-000747 c000                      	RJMP	END_T1PC_ISR
+000745 e051                      	LDI		MONTH_COUNT, 1
+000746 c000                      	RJMP	END_T1PC_ISR
                                  
                                  // Terminar Rutina de Interrupción
                                  END_T1PC_ISR:
                                  	// Después de haber cambiado hora y minutos, ver si hay que prender la alarma
-000748 940e 0758                 	CALL	ALARMA_INTERRUPT
+000747 940e 0757                 	CALL	ALARMA_INTERRUPT
                                  
-00074a 910f                      	POP		R16
-00074b bf0f                      	OUT		SREG, R16
-00074c 910f                      	POP		R16
-00074d 9518                      	RETI
+000749 910f                      	POP		R16
+00074a bf0f                      	OUT		SREG, R16
+00074b 910f                      	POP		R16
+00074c 9518                      	RETI
                                  
                                  
                                  
@@ -2129,15 +2128,15 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  // | RUTINAS DE INTERRUPCIÓN CON TIMER2								  |
                                  // --------------------------------------------------------------------
                                  TIMER2_ISR:
-00074e 930f                      	PUSH	R16
-00074f b70f                      	IN		R16, SREG
-000750 930f                      	PUSH	R16
+00074d 930f                      	PUSH	R16
+00074e b70f                      	IN		R16, SREG
+00074f 930f                      	PUSH	R16
                                  
                                  	// Reiniciar el TIMER2
-000751 940e 0610                 	CALL	RESET_TIMER2
+000750 940e 0610                 	CALL	RESET_TIMER2
                                  
                                  	// INCREMENTAR en 1 la máscara de OUTPORTD para modos de cambio de contadores
-000753 9433                      	INC		T2COSC ; INCREMENTAR en 1 el último bit de este registro
+000752 9433                      	INC		T2COSC ; INCREMENTAR en 1 el último bit de este registro
                                  
                                  	// Aquí va a saltar a END_T2_ISR
                                  
@@ -2150,28 +2149,28 @@ AVRASM ver. 2.2.8  C:\Programacion-de-Microcontroladores\Proyecto1_PrograDeMicro
                                  
                                  // Terminar Rutina de Interrupción
                                  END_T2_ISR:
-000754 910f                      	POP		R16
-000755 bf0f                      	OUT		SREG, R16
-000756 910f                      	POP		R16
-000757 9518                      	RETI
+000753 910f                      	POP		R16
+000754 bf0f                      	OUT		SREG, R16
+000755 910f                      	POP		R16
+000756 9518                      	RETI
                                  
                                  // --------------------------------------------------------------------
                                  // | SUBRUTINAS_COMPARTIDAS											  |
                                  // --------------------------------------------------------------------
                                  // RUTINA NO DE INTERRUPCIÓN QUE PODRÍA FULMINARSE
                                  ALARMA_INTERRUPT:
-000758 1524                      	CP		MINUTE_COUNT, ALARM_MINUTES
-000759 f009                      	BREQ	ALARMA_COMPARAR_HORAS
-00075a 9508                      	RET
+000757 1524                      	CP		MINUTE_COUNT, ALARM_MINUTES
+000758 f009                      	BREQ	ALARMA_COMPARAR_HORAS
+000759 9508                      	RET
                                  
                                  ALARMA_COMPARAR_HORAS:
-00075b 1535                      	CP		HOUR_COUNT, ALARM_HOUR
-00075c f411                      	BRNE	NO_ACTIVAR_ALARMA
-00075d 9a2d                      	SBI		PORTB, PB5
-00075e 9508                      	RET
+00075a 1535                      	CP		HOUR_COUNT, ALARM_HOUR
+00075b f411                      	BRNE	NO_ACTIVAR_ALARMA
+00075c 9a2d                      	SBI		PORTB, PB5
+00075d 9508                      	RET
                                  
                                  NO_ACTIVAR_ALARMA:
-00075f 9508                      	RET
+00075e 9508                      	RET
 
 
 RESOURCE USE INFORMATION
@@ -2192,7 +2191,7 @@ counted separately from r26..r31 here.
 x  :   0 y  :   0 z  :   3 r0 :   0 r1 :   0 r2 :   0 r3 :  16 r4 :  11 
 r5 :   9 r6 :   0 r7 :   0 r8 :   0 r9 :   0 r10:   0 r11:   0 r12:   0 
 r13:   0 r14:   0 r15:   0 r16:  86 r17:   0 r18:  11 r19:  11 r20:  17 
-r21:  23 r22:  22 r23:  15 r24:  63 r25:  21 r26:   0 r27:   0 r28:   0 
+r21:  22 r22:  22 r23:  15 r24:  63 r25:  21 r26:   0 r27:   0 r28:   0 
 r29:   0 r30:   5 r31:   2 
 Registers used: 15 out of 35 (42.9%)
 
@@ -2205,7 +2204,7 @@ brne  :   4 brpl  :   0 brsh  :   0 brtc  :   0 brts  :   0 brvc  :   0
 brvs  :   0 bset  :   0 bst   :   0 call  :  10 cbi   :  21 cbr   :   0 
 clc   :   0 clh   :   0 cli   :   0 cln   :   0 clr   :   9 cls   :   0 
 clt   :   0 clv   :   0 clz   :   0 com   :   0 cp    :   2 cpc   :   0 
-cpi   :  67 cpse  :   0 dec   :   6 eor   :   0 fmul  :   0 fmuls :   0 
+cpi   :  66 cpse  :   0 dec   :   6 eor   :   0 fmul  :   0 fmuls :   0 
 fmulsu:   0 icall :   0 ijmp  :   0 in    :   4 inc   :  12 jmp   :  39 
 ld    :   0 ldd   :   0 ldi   :  69 lds   :   0 lpm   :   6 lsl   :   0 
 lsr   :   0 mov   :  20 movw  :   0 mul   :   0 muls  :   0 mulsu :   0 
@@ -2221,7 +2220,7 @@ Instructions used: 30 out of 113 (26.5%)
 "ATmega328P" memory use summary [bytes]:
 Segment   Begin    End      Code   Data   Used    Size   Use%
 ---------------------------------------------------------------
-[.cseg] 0x000000 0x000ec0   1104    122   1226   32768   3.7%
+[.cseg] 0x000000 0x000ebe   1102    122   1224   32768   3.7%
 [.dseg] 0x000100 0x000100      0      0      0    2048   0.0%
 [.eseg] 0x000000 0x000000      0      0      0    1024   0.0%
 

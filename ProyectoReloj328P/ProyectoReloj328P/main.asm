@@ -39,7 +39,7 @@ FECHA DE ENTREGA: 21 de marzo de 2025
 // CONSTANTES DE TIMERS (Para fclk = 1 MHz)
 // Constantes para Timer0
 .equ	PRESCALER0 = (1<<CS01) | (1<<CS00)				; Prescaler de TIMER0 (1024)
-.equ	TIMER_START0 = 236								; Valor inicial del Timer0 (1.25 ms)
+.equ	TIMER_START0 = 236								; Valor inicial del Timer0 (0.20 ms)
 
 // Constantes para Timer1
 .equ	PRESCALER1 = (1<<CS12) | (1<<CS10)				; Prescaler de TIMER1 (1024)
@@ -448,9 +448,6 @@ LOOKUP_TABLE:
 	// Incrementar puntero Z en 2*OUT_PORTD
 	ADD		ZL, R16
 
-	// Sacar el primer dígitooo
-	LPM		R16, Z
-	
 	// Si MUX_SIGNAL es 0x04 o 0x08 sacar el siguiente número
 	SBRC	MUX_SIGNAL, 1
 	INC		ZL
@@ -1069,7 +1066,6 @@ INCREMENTAR_MES:
 	BRLO	END_T1PC_ISR
 
 	// Si las unidades de meses excenden 12, reiniciar ambos contadores
-	CPI		MONTH_COUNT, 12
 	LDI		MONTH_COUNT, 1
 	RJMP	END_T1PC_ISR
 
